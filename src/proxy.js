@@ -163,7 +163,7 @@ class OcppProxy {
       const msg = data.toString()
       const info = this.clientConnections.get(clientWs)
 
-      if (info && !upstreams.some((u) => u.isConnected)) {
+      if (info && !upstreams[0].isConnected) {
         const maxBuffer = this.config.maxBufferSize ?? 100
         if (info.messageBuffer.length >= maxBuffer) {
           clog.warn(`Message buffer full (${maxBuffer}) — closing client`)
