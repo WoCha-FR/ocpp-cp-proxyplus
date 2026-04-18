@@ -70,20 +70,19 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE INDEX IF NOT EXISTS idx_transactions_client  ON transactions(client_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_started ON transactions(started_at DESC);
 
--- Relevés d'énergie pendant la charge (MeterValues)
-CREATE TABLE IF NOT EXISTS meter_values (
+-- Dernière valeur connue par measurand (UPSERT à chaque MeterValues reçu, pas d'historique)
+CREATE TABLE IF NOT EXISTS current_meter_values (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
   ts             INTEGER NOT NULL,
   client_id      TEXT NOT NULL,
   evse_id        INTEGER NOT NULL DEFAULT 0,
   connector_id   INTEGER NOT NULL,
-  transaction_id INTEGER,        -- FK vers transactions.id (NULL si hors transaction)
   measurand      TEXT NOT NULL,  -- ex: 'Energy.Active.Import.Register', 'Power.Active.Import'
   value          REAL NOT NULL,
-  unit           TEXT            -- ex: 'Wh', 'W', 'A', 'V'
+  unit           TEXT,           -- ex: 'Wh', 'W', 'A', 'V'
+  UNIQUE(client_id, evse_id, connector_id, measurand)
 );
-CREATE INDEX IF NOT EXISTS idx_meter_values_tx ON meter_values(transaction_id);
-CREATE INDEX IF NOT EXISTS idx_meter_values_ts ON meter_values(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_current_meter_client ON current_meter_values(client_id);
 
 -- Autorisations RFID (Authorize & StartTransaction)
 CREATE TABLE IF NOT EXISTS authorizations (

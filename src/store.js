@@ -42,12 +42,13 @@ class Store {
       UPDATE transactions SET meter_stop = @meterStop, stopped_at = @stoppedAt, stop_reason = @stopReason
       WHERE client_id = @clientId AND ocpp_tx_id = @ocppTxId AND stopped_at IS NULL
     `)
-    this._stmtFindTxId = db.prepare(`
-      SELECT id FROM transactions WHERE client_id = @clientId AND ocpp_tx_id = @ocppTxId AND stopped_at IS NULL LIMIT 1
-    `)
-    this._stmtInsertMV = db.prepare(`
-      INSERT INTO meter_values (ts, client_id, evse_id, connector_id, transaction_id, measurand, value, unit)
-      VALUES (@ts, @clientId, @evseId, @connectorId, @transactionId, @measurand, @value, @unit)
+    this._stmtUpsertMV = db.prepare(`
+      INSERT INTO current_meter_values (ts, client_id, evse_id, connector_id, measurand, value, unit)
+      VALUES (@ts, @clientId, @evseId, @connectorId, @measurand, @value, @unit)
+      ON CONFLICT(client_id, evse_id, connector_id, measurand) DO UPDATE SET
+        ts    = excluded.ts,
+        value = excluded.value,
+        unit  = excluded.unit
     `)
     this._stmtInsertAuth = db.prepare(`
       INSERT INTO authorizations (ts, client_id, id_tag, token_type, group_id_token, status, action)
@@ -109,23 +110,17 @@ class Store {
   }
 
   // meterValueArray: OCPP meterValue array [{timestamp, sampledValue: [{measurand, value, unit}]}]
-  insertMeterValues(clientId, evseId, connectorId, ocppTxId, meterValueArray) {
-    let transactionId = null
-    if (ocppTxId != null) {
-      const row = this._stmtFindTxId.get({ clientId, ocppTxId: String(ocppTxId) })
-      transactionId = row?.id ?? null
-    }
+  upsertCurrentMeterValues(clientId, evseId, connectorId, meterValueArray) {
     for (const mv of meterValueArray) {
       const ts = mv.timestamp ? new Date(mv.timestamp).getTime() : Date.now()
       for (const sv of mv.sampledValue ?? []) {
         const numVal = parseFloat(sv.value)
         if (isNaN(numVal)) continue
-        this._stmtInsertMV.run({
+        this._stmtUpsertMV.run({
           ts,
           clientId,
           evseId,
           connectorId,
-          transactionId,
           measurand: sv.measurand ?? 'Energy.Active.Import.Register',
           value: numVal,
           unit: sv.unitOfMeasure?.unit ?? sv.unit ?? null,
@@ -136,6 +131,17 @@ class Store {
 
   insertAuthorization(clientId, idTag, status, tokenType = 'ISO14443', groupIdToken = null, action = 'Authorize') {
     this._stmtInsertAuth.run({ now: Date.now(), clientId, idTag, tokenType, groupIdToken, status, action })
+  }
+
+  getCurrentMeterValues(clientId = null) {
+    if (clientId) {
+      return this.db
+        .prepare(`SELECT * FROM current_meter_values WHERE client_id = @clientId ORDER BY evse_id, connector_id, measurand`)
+        .all({ clientId })
+    }
+    return this.db
+      .prepare(`SELECT * FROM current_meter_values ORDER BY client_id, evse_id, connector_id, measurand`)
+      .all()
   }
 
   // --- Queries for the REST API ---

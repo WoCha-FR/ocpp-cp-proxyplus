@@ -385,7 +385,7 @@ class Notify {
         stopReason,
       })
       if (params.transactionData) {
-        this.store.insertMeterValues(clientId, 0, params.connectorId ?? 0, ocppTxId, params.transactionData)
+        this.store.upsertCurrentMeterValues(clientId, 0, params.connectorId ?? 0, params.transactionData)
       }
     }
     eventBus.emit('transaction-close', { clientId, ocppTxId })
@@ -403,7 +403,8 @@ class Notify {
     const connectorId = params.connectorId ?? 0
     const ocppTxId = params.transactionId ?? null
     if (this.store && params.meterValue) {
-      this.store.insertMeterValues(clientId, evseId, connectorId, ocppTxId, params.meterValue)
+      this.store.upsertCurrentMeterValues(clientId, evseId, connectorId, params.meterValue)
+      eventBus.emit('ocpp-event', { type: 'meter_values', clientId })
     }
   }
 
@@ -466,7 +467,7 @@ class Notify {
           eventBus.emit('status-update', { clientId, evseId, connectorId, status })
         }
         if (params.meterValue && this.store) {
-          this.store.insertMeterValues(clientId, evseId, connectorId, ocppTxId, params.meterValue)
+          this.store.upsertCurrentMeterValues(clientId, evseId, connectorId, params.meterValue)
         }
         this.store?.insertEvent(clientId, 'transaction_event', evseId, connectorId, {
           eventType,
