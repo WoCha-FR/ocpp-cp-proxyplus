@@ -39,3 +39,5 @@ temp/
 
 # Dev files
 config.dev.json
+config.json
+config/cpproxy.db*

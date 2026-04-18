@@ -1,0 +1,28 @@
+{
+  "logLevel": "info",
+  "lang": "fr",
+  "routing": { "default": ["ws://ws1.ocpp.fr/", "ws://ws2.ocpp.fr/"], "STATION01": ["ws://specific.ocpp.fr/"] },
+  "maxBufferSize": 100,
+  "callTimeoutMs": 30000,
+  "heartbeatIntervalMs": 30000,
+  "proxy": { "host": "0.0.0.0", "port": 9000 },
+  "dashboard": { "port": 3000, "username": "admin", "password": "changeme" },
+  "notify": {
+    "onConnect": true,
+    "onDisconnect": true,
+    "onUpstreamConnect": true,
+    "onUpstreamDisconnect": true,
+    "onStatusFault": true,
+    "onTransaction": true,
+    "email": {
+      "enabled": false,
+      "host": "smtp.example.com",
+      "port": 587,
+      "user": "",
+      "pass": "",
+      "from": "ocpp@example.com",
+      "to": "admin@example.com"
+    },
+    "pushover": { "enabled": false, "token": "", "user": "" }
+  }
+}

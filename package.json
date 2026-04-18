@@ -1,0 +1,57 @@
+{
+  "name": "ocpp-cp-proxyplus",
+  "version": "1.0.0",
+  "description": "A 1 or 2 way ocpp proxy with alert system on ChargePoint events",
+  "keywords": [
+    "ocpp",
+    "proxy",
+    "websocket",
+    "charging-point",
+    "alert",
+    "alarm"
+  ],
+  "homepage": "https://github.com/WoCha-FR/ocpp-cp-proxyplus#readme",
+  "bugs": {
+    "url": "https://github.com/WoCha-FR/ocpp-cp-proxyplus/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WoCha-FR/ocpp-cp-proxyplus.git"
+  },
+  "license": "GPL-3.0-only",
+  "author": "WoCha",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "prettier": "prettier . --check",
+    "fixlint": "eslint --fix .",
+    "fixprettier": "prettier . --write",
+    "start": "node src/index.js",
+    "start-dev": "cross-env NODE_ENV=development node src/index.js",
+    "test": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.15.0",
+    "better-sqlite3": "^12.9.0",
+    "cross-env": "^10.1.0",
+    "express": "^5.2.1",
+    "express-basic-auth": "^1.2.1",
+    "i18next": "^26.0.5",
+    "nodemailer": "^8.0.5",
+    "winston": "^3.19.0",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^1.2.0",
+    "@eslint/markdown": "^7.5.1",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.5.0",
+    "prettier": "3.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

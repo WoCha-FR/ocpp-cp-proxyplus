@@ -1,0 +1,133 @@
+{
+  "language_label": "🇫🇷 Français",
+
+  "nav": { "status": "État", "events": "Événements", "transactions": "Transactions", "config": "Configuration" },
+
+  "status": {
+    "Available": "Disponible",
+    "Preparing": "En préparation",
+    "Charging": "En charge",
+    "SuspendedEVSE": "Suspendu (borne)",
+    "SuspendedEV": "Suspendu (véhicule)",
+    "Finishing": "Fin de charge",
+    "Reserved": "Réservé",
+    "Unavailable": "Indisponible",
+    "Faulted": "En défaut",
+    "Unknown": "Inconnu"
+  },
+
+  "connector": { "station": "Station", "label": "Connecteur {{id}}", "evse_label": "EVSE {{id}}" },
+
+  "notification": {
+    "connected": {
+      "title": "[{{clientId}}] Borne connectée",
+      "body": "La borne {{clientId}} s'est connectée au proxy OCPP."
+    },
+    "disconnected": {
+      "title": "[{{clientId}}] Borne déconnectée",
+      "body": "La borne {{clientId}} s'est déconnectée du proxy OCPP."
+    },
+    "fault": {
+      "title": "[{{clientId}}] Défaut détecté",
+      "body": "La borne {{clientId}} signale un défaut sur le connecteur {{connectorId}}.\nCode erreur : {{errorCode}}"
+    },
+    "transaction_start": {
+      "title": "[{{clientId}}] Charge démarrée",
+      "body": "Démarrage d'une transaction sur {{clientId}}, connecteur {{connectorId}}.\nBadge : {{idTag}}"
+    },
+    "transaction_stop": {
+      "title": "[{{clientId}}] Charge terminée",
+      "body": "Fin de transaction sur {{clientId}}, connecteur {{connectorId}}."
+    },
+    "upstream_connected": {
+      "title": "[{{clientId}}] Connecté à l'upstream",
+      "body": "La borne {{clientId}} s'est connectée au serveur upstream {{serverName}}."
+    },
+    "upstream_disconnected": {
+      "title": "[{{clientId}}] Déconnecté de l'upstream",
+      "body": "La borne {{clientId}} s'est déconnectée du serveur upstream {{serverName}}."
+    }
+  },
+
+  "action": {
+    "save": "Enregistrer",
+    "restart_required": "Redémarrage requis pour appliquer les modifications.",
+    "add_rule": "Ajouter une règle",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "cancel": "Annuler"
+  },
+
+  "toast": {
+    "saved": "Enregistré avec succès.",
+    "error": "Une erreur est survenue.",
+    "restart_required": "Modification enregistrée — redémarrez le proxy pour l'appliquer."
+  },
+
+  "chargepoint": {
+    "last_seen": "Dernière activité",
+    "first_seen": "Première connexion",
+    "vendor": "Fabricant",
+    "model": "Modèle",
+    "serial": "Numéro de série",
+    "firmware": "Firmware",
+    "name_placeholder": "Nom personnalisé"
+  },
+
+  "events": {
+    "title": "Événements",
+    "filter_type": "Filtrer par type",
+    "filter_client": "Filtrer par borne",
+    "all_types": "Tous les types",
+    "all_clients": "Toutes les bornes",
+    "no_results": "Aucun événement trouvé.",
+    "col_time": "Heure",
+    "col_type": "Type",
+    "col_client": "Borne",
+    "col_connector": "Connecteur",
+    "col_payload": "Détail"
+  },
+
+  "transactions": {
+    "title": "Transactions",
+    "filter_client": "Filtrer par borne",
+    "all_clients": "Toutes les bornes",
+    "no_results": "Aucune transaction trouvée.",
+    "col_client": "Borne",
+    "col_connector": "Connecteur",
+    "col_id_tag": "Badge",
+    "col_started": "Début",
+    "col_stopped": "Fin",
+    "col_duration": "Durée",
+    "col_energy": "Énergie (kWh)",
+    "in_progress": "En cours"
+  },
+
+  "config": {
+    "title": "Configuration",
+    "section_notify": "Notifications",
+    "section_email": "Email",
+    "section_pushover": "Pushover",
+    "section_routing": "Routage",
+    "notify_on_connect": "Connexion d'une borne",
+    "notify_on_disconnect": "Déconnexion d'une borne",
+    "notify_on_upstream_connect": "Connexion à un serveur upstream",
+    "notify_on_upstream_disconnect": "Déconnexion d'un serveur upstream",
+    "notify_on_fault": "Défaut détecté",
+    "notify_on_transaction": "Début / fin de transaction",
+    "email_enabled": "Activer les notifications email",
+    "email_host": "Serveur SMTP",
+    "email_port": "Port",
+    "email_user": "Utilisateur",
+    "email_pass": "Mot de passe",
+    "email_from": "Expéditeur",
+    "email_to": "Destinataire",
+    "pushover_enabled": "Activer Pushover",
+    "pushover_token": "Token application",
+    "pushover_user": "Clé utilisateur",
+    "routing_client": "Identifiant borne",
+    "routing_upstream": "URL upstream",
+    "routing_default_label": "Par défaut",
+    "routing_default_hint": "(non supprimable)"
+  }
+}

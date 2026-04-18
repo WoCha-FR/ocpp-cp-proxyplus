@@ -1,0 +1,133 @@
+{
+  "language_label": "🇬🇧 English",
+
+  "nav": { "status": "Status", "events": "Events", "transactions": "Transactions", "config": "Configuration" },
+
+  "status": {
+    "Available": "Available",
+    "Preparing": "Preparing",
+    "Charging": "Charging",
+    "SuspendedEVSE": "Suspended (EVSE)",
+    "SuspendedEV": "Suspended (EV)",
+    "Finishing": "Finishing",
+    "Reserved": "Reserved",
+    "Unavailable": "Unavailable",
+    "Faulted": "Faulted",
+    "Unknown": "Unknown"
+  },
+
+  "connector": { "station": "Station", "label": "Connector {{id}}", "evse_label": "EVSE {{id}}" },
+
+  "notification": {
+    "connected": {
+      "title": "[{{clientId}}] Charge point connected",
+      "body": "Charge point {{clientId}} connected to the OCPP proxy."
+    },
+    "disconnected": {
+      "title": "[{{clientId}}] Charge point disconnected",
+      "body": "Charge point {{clientId}} disconnected from the OCPP proxy."
+    },
+    "fault": {
+      "title": "[{{clientId}}] Fault detected",
+      "body": "Charge point {{clientId}} reported a fault on connector {{connectorId}}.\nError code: {{errorCode}}"
+    },
+    "transaction_start": {
+      "title": "[{{clientId}}] Charging started",
+      "body": "Transaction started on {{clientId}}, connector {{connectorId}}.\nBadge: {{idTag}}"
+    },
+    "transaction_stop": {
+      "title": "[{{clientId}}] Charging finished",
+      "body": "Transaction ended on {{clientId}}, connector {{connectorId}}."
+    },
+    "upstream_connected": {
+      "title": "[{{clientId}}] Connected to upstream",
+      "body": "Charge point {{clientId}} connected to upstream server {{serverName}}."
+    },
+    "upstream_disconnected": {
+      "title": "[{{clientId}}] Disconnected from upstream",
+      "body": "Charge point {{clientId}} disconnected from upstream server {{serverName}}."
+    }
+  },
+
+  "action": {
+    "save": "Save",
+    "restart_required": "A restart is required to apply changes.",
+    "add_rule": "Add rule",
+    "delete": "Delete",
+    "edit": "Edit",
+    "cancel": "Cancel"
+  },
+
+  "toast": {
+    "saved": "Saved successfully.",
+    "error": "An error occurred.",
+    "restart_required": "Change saved — restart the proxy to apply it."
+  },
+
+  "chargepoint": {
+    "last_seen": "Last seen",
+    "first_seen": "First seen",
+    "vendor": "Vendor",
+    "model": "Model",
+    "serial": "Serial number",
+    "firmware": "Firmware",
+    "name_placeholder": "Custom name"
+  },
+
+  "events": {
+    "title": "Events",
+    "filter_type": "Filter by type",
+    "filter_client": "Filter by charge point",
+    "all_types": "All types",
+    "all_clients": "All charge points",
+    "no_results": "No events found.",
+    "col_time": "Time",
+    "col_type": "Type",
+    "col_client": "Charge point",
+    "col_connector": "Connector",
+    "col_payload": "Detail"
+  },
+
+  "transactions": {
+    "title": "Transactions",
+    "filter_client": "Filter by charge point",
+    "all_clients": "All charge points",
+    "no_results": "No transactions found.",
+    "col_client": "Charge point",
+    "col_connector": "Connector",
+    "col_id_tag": "Badge",
+    "col_started": "Start",
+    "col_stopped": "End",
+    "col_duration": "Duration",
+    "col_energy": "Energy (kWh)",
+    "in_progress": "In progress"
+  },
+
+  "config": {
+    "title": "Configuration",
+    "section_notify": "Notifications",
+    "section_email": "Email",
+    "section_pushover": "Pushover",
+    "section_routing": "Routing",
+    "notify_on_connect": "Charge point connected",
+    "notify_on_disconnect": "Charge point disconnected",
+    "notify_on_upstream_connect": "Connected to upstream server",
+    "notify_on_upstream_disconnect": "Disconnected from upstream server",
+    "notify_on_fault": "Fault detected",
+    "notify_on_transaction": "Transaction start / stop",
+    "email_enabled": "Enable email notifications",
+    "email_host": "SMTP server",
+    "email_port": "Port",
+    "email_user": "Username",
+    "email_pass": "Password",
+    "email_from": "From address",
+    "email_to": "To address",
+    "pushover_enabled": "Enable Pushover",
+    "pushover_token": "Application token",
+    "pushover_user": "User key",
+    "routing_client": "Charge point ID",
+    "routing_upstream": "Upstream URL",
+    "routing_default_label": "Default",
+    "routing_default_hint": "(cannot be removed)"
+  }
+}
