@@ -7,6 +7,7 @@ const WebSocket = require('ws')
 const OcppRouter = require('./ocpp-router')
 const UpstreamConnection = require('./upstream')
 const { createLogger } = require('./logger')
+const CommandSender = require('./command-sender')
 
 const log = createLogger('Proxy')
 
@@ -31,6 +32,7 @@ class OcppProxy {
     this.notifier = notifier
     this.heartbeatInterval = null
     this.clientConnections = new Map() // clientWs → connectionInfo
+    this.commandSender = new CommandSender()
   }
 
   // ─── Start / Stop ─────────────────────────────────────────────────────────
@@ -204,6 +206,11 @@ class OcppProxy {
       return
     }
 
+    if ((message.type === 3 || message.type === 4) && this.commandSender.hasPending(message.messageId)) {
+      this.commandSender.handleResponse(message.messageId, message.parsed)
+      return
+    }
+
     const routing = router.routeClientMessage(message)
 
     if (routing.sendToAll) {
@@ -348,10 +355,18 @@ class OcppProxy {
 
   // ─── Cleanup ──────────────────────────────────────────────────────────────
 
+  getClientConnection(clientId) {
+    for (const [ws, info] of this.clientConnections) {
+      if (info.clientId === clientId) return { ws, protocol: info.protocol }
+    }
+    return null
+  }
+
   cleanupClientConnection(clientWs) {
     const info = this.clientConnections.get(clientWs)
     if (!info) return
 
+    this.commandSender.clearForClient(clientWs)
     info.upstreams.forEach((u) => u.close())
     info.router.clear()
     this.clientConnections.delete(clientWs)
