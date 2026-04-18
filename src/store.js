@@ -54,6 +54,10 @@ class Store {
       INSERT INTO authorizations (ts, client_id, id_tag, token_type, group_id_token, status, action)
       VALUES (@now, @clientId, @idTag, @tokenType, @groupIdToken, @status, @action)
     `)
+    this._stmtInsertFault = db.prepare(`
+      INSERT INTO fault_events (ts, client_id, evse_id, connector_id, component, variable, error_code, severity, info, vendor_id, vendor_error, cleared, source)
+      VALUES (@now, @clientId, @evseId, @connectorId, @component, @variable, @errorCode, @severity, @info, @vendorId, @vendorError, @cleared, @source)
+    `)
   }
 
   upsertChargepoint(clientId, { vendor, model, serial, firmware } = {}) {
@@ -131,6 +135,46 @@ class Store {
 
   insertAuthorization(clientId, idTag, status, tokenType = 'ISO14443', groupIdToken = null, action = 'Authorize') {
     this._stmtInsertAuth.run({ now: Date.now(), clientId, idTag, tokenType, groupIdToken, status, action })
+  }
+
+  insertFaultEvent(clientId, evseId, connectorId, { component, variable, errorCode, severity, info, vendorId, vendorError, cleared, source }) {
+    this._stmtInsertFault.run({
+      now: Date.now(),
+      clientId,
+      evseId,
+      connectorId,
+      component: component ?? null,
+      variable: variable ?? null,
+      errorCode: errorCode ?? null,
+      severity: severity ?? null,
+      info: info ?? null,
+      vendorId: vendorId ?? null,
+      vendorError: vendorError ?? null,
+      cleared: cleared ?? 0,
+      source,
+    })
+  }
+
+  getFaultEvents({ page = 1, limit = 50, clientId = null, cleared = null } = {}) {
+    const offset = (page - 1) * limit
+    const conditions = []
+    const params = {}
+    if (clientId) {
+      conditions.push('client_id = @clientId')
+      params.clientId = clientId
+    }
+    if (cleared !== null && cleared !== undefined) {
+      conditions.push('cleared = @cleared')
+      params.cleared = cleared
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+    const rows = this.db
+      .prepare(`SELECT * FROM fault_events ${where} ORDER BY ts DESC LIMIT @limit OFFSET @offset`)
+      .all({ ...params, limit, offset })
+    const { total } = this.db
+      .prepare(`SELECT COUNT(*) AS total FROM fault_events ${where}`)
+      .get(params)
+    return { rows, total, page, limit }
   }
 
   getCurrentMeterValues(clientId = null) {

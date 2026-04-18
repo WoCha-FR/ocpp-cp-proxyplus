@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS connector_status (
   evse_id      INTEGER NOT NULL DEFAULT 0,  -- 0 = OCPP 1.6 / CP level
   connector_id INTEGER NOT NULL,
   status       TEXT NOT NULL,
-  status_raw TEXT, -- statut brut 2.0.1 avant normalisation
+  status_raw   TEXT, -- statut brut 2.0.1 avant normalisation
   error_code   TEXT,
   updated_at   INTEGER NOT NULL,
   UNIQUE(client_id, evse_id, connector_id)
@@ -97,3 +97,23 @@ CREATE TABLE IF NOT EXISTS authorizations (
 );
 CREATE INDEX IF NOT EXISTS idx_authorizations_client ON authorizations(client_id);
 CREATE INDEX IF NOT EXISTS idx_authorizations_tag    ON authorizations(id_tag);
+
+-- Défauts / événements composant (normalisés 1.6 + 2.0.1)
+CREATE TABLE IF NOT EXISTS fault_events (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts           INTEGER NOT NULL,
+  client_id    TEXT NOT NULL,
+  evse_id      INTEGER NOT NULL DEFAULT 0,
+  connector_id INTEGER NOT NULL DEFAULT 0,
+  component    TEXT,        -- 'Connector'|'EVSE'|'ChargingStation'|component.name (2.0.1)
+  variable     TEXT,        -- variable.name (2.0.1 uniquement)
+  error_code   TEXT,        -- errorCode (1.6) / techCode (2.0.1)
+  severity     INTEGER,     -- 0-9 (2.0.1 natif) ; NULL pour 1.6
+  info         TEXT,        -- info (1.6) / techInfo (2.0.1)
+  vendor_id    TEXT,        -- vendorId (1.6 uniquement)
+  vendor_error TEXT,        -- vendorErrorCode (1.6) / actualValue (2.0.1)
+  cleared      INTEGER NOT NULL DEFAULT 0,  -- 0=actif, 1=résolu
+  source       TEXT NOT NULL  -- 'ocpp16' | 'ocpp201'
+);
+CREATE INDEX IF NOT EXISTS idx_fault_client ON fault_events(client_id);
+CREATE INDEX IF NOT EXISTS idx_fault_ts     ON fault_events(ts DESC);

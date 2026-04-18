@@ -168,6 +168,9 @@ class Notify {
       case 'TransactionEvent':
         this._handleTransactionEvent(clientId, messageId, params, now)
         break
+      case 'NotifyEvent':
+        this._handleNotifyEvent(clientId, params)
+        break
     }
   }
 
@@ -340,11 +343,22 @@ class Notify {
     eventBus.emit('status-update', { clientId, evseId, connectorId, status })
     eventBus.emit('ocpp-event', { type: 'status_notification', clientId })
 
-    if (status === 'Faulted' && this.config.onStatusFault) {
-      this._send(
-        trad('notification.fault.title', { clientId }),
-        trad('notification.fault.body', { clientId, connectorId, errorCode: errorCode ?? statusRaw ?? '' })
-      )
+    const isFaulted = status === 'Faulted'
+    const hasError = errorCode && errorCode !== 'NoError'
+    if (isFaulted || hasError) {
+      const severity = isFaulted && hasError ? 2 : isFaulted ? 3 : 5
+      const component = connectorId === 0 ? 'ChargingStation' : 'Connector'
+      this._insertFaultAndNotify(clientId, evseId, connectorId, {
+        component,
+        variable: null,
+        errorCode: errorCode ?? null,
+        severity,
+        info: params.info ?? null,
+        vendorId: params.vendorId ?? null,
+        vendorError: params.vendorErrorCode ?? null,
+        cleared: 0,
+        source: 'ocpp16',
+      })
     }
   }
 
@@ -495,6 +509,39 @@ class Notify {
         }
         break
       }
+    }
+  }
+
+  _insertFaultAndNotify(clientId, evseId, connectorId, faultFields) {
+    this.store?.insertFaultEvent(clientId, evseId, connectorId, faultFields)
+    eventBus.emit('fault-event', { clientId, evseId, connectorId, ...faultFields, ts: Date.now() })
+    if (faultFields.severity <= 3 && this.config.onStatusFault) {
+      this._send(
+        trad('notification.fault.title', { clientId }),
+        trad('notification.fault.body', {
+          clientId,
+          connectorId,
+          errorCode: faultFields.errorCode ?? faultFields.vendorError ?? '',
+        })
+      )
+    }
+  }
+
+  _handleNotifyEvent(clientId, params) {
+    for (const eventData of params.eventData ?? []) {
+      const evseId = eventData.component?.evse?.id ?? 0
+      const connectorId = eventData.component?.evse?.connectorId ?? 0
+      this._insertFaultAndNotify(clientId, evseId, connectorId, {
+        component: eventData.component?.name ?? null,
+        variable: eventData.variable?.name ?? null,
+        errorCode: eventData.techCode ?? null,
+        severity: eventData.severity ?? null,
+        info: eventData.techInfo ?? null,
+        vendorId: null,
+        vendorError: eventData.actualValue ?? null,
+        cleared: eventData.cleared ? 1 : 0,
+        source: 'ocpp201',
+      })
     }
   }
 
