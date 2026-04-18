@@ -522,6 +522,9 @@ class Notify {
           clientId,
           connectorId,
           errorCode: faultFields.errorCode ?? faultFields.vendorError ?? '',
+          componentStr: faultFields.component ? `\nComposant : ${faultFields.component}` : '',
+          severityStr: faultFields.severity != null ? `\nSévérité : ${faultFields.severity}` : '',
+          infoStr: faultFields.info ? `\nInfo : ${faultFields.info}` : '',
         })
       )
     }

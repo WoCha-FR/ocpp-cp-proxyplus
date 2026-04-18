@@ -29,7 +29,7 @@
     },
     "fault": {
       "title": "[{{clientId}}] Défaut détecté",
-      "body": "La borne {{clientId}} signale un défaut sur le connecteur {{connectorId}}.\nCode erreur : {{errorCode}}"
+      "body": "La borne {{clientId}} signale un défaut sur le connecteur {{connectorId}}.\nCode erreur : {{errorCode}}{{componentStr}}{{severityStr}}{{infoStr}}"
     },
     "transaction_start": {
       "title": "[{{clientId}}] Charge démarrée",

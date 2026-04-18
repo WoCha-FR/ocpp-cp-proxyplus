@@ -29,7 +29,7 @@
     },
     "fault": {
       "title": "[{{clientId}}] Fault detected",
-      "body": "Charge point {{clientId}} reported a fault on connector {{connectorId}}.\nError code: {{errorCode}}"
+      "body": "Charge point {{clientId}} reported a fault on connector {{connectorId}}.\nError code: {{errorCode}}{{componentStr}}{{severityStr}}{{infoStr}}"
     },
     "transaction_start": {
       "title": "[{{clientId}}] Charging started",
