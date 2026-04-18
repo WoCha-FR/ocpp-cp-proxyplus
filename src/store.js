@@ -137,7 +137,12 @@ class Store {
     this._stmtInsertAuth.run({ now: Date.now(), clientId, idTag, tokenType, groupIdToken, status, action })
   }
 
-  insertFaultEvent(clientId, evseId, connectorId, { component, variable, errorCode, severity, info, vendorId, vendorError, cleared, source }) {
+  insertFaultEvent(
+    clientId,
+    evseId,
+    connectorId,
+    { component, variable, errorCode, severity, info, vendorId, vendorError, cleared, source }
+  ) {
     this._stmtInsertFault.run({
       now: Date.now(),
       clientId,
@@ -171,9 +176,7 @@ class Store {
     const rows = this.db
       .prepare(`SELECT * FROM fault_events ${where} ORDER BY ts DESC LIMIT @limit OFFSET @offset`)
       .all({ ...params, limit, offset })
-    const { total } = this.db
-      .prepare(`SELECT COUNT(*) AS total FROM fault_events ${where}`)
-      .get(params)
+    const { total } = this.db.prepare(`SELECT COUNT(*) AS total FROM fault_events ${where}`).get(params)
     return { rows, total, page, limit }
   }
 
@@ -183,9 +186,7 @@ class Store {
         .prepare(`SELECT * FROM current_meter_values WHERE client_id = @clientId ORDER BY evse_id, connector_id, measurand`)
         .all({ clientId })
     }
-    return this.db
-      .prepare(`SELECT * FROM current_meter_values ORDER BY client_id, evse_id, connector_id, measurand`)
-      .all()
+    return this.db.prepare(`SELECT * FROM current_meter_values ORDER BY client_id, evse_id, connector_id, measurand`).all()
   }
 
   // --- Queries for the REST API ---

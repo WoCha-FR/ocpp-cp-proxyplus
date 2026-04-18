@@ -5,8 +5,7 @@ const { trad } = require('./i18n')
 const Store = require('./store')
 const eventBus = require('./event-bus')
 
-// Extract energy Wh from a meterValue array, filtering by Energy.Active.Import.Register measurand.
-// Falls back to first numeric sampledValue if measurand is absent.
+// Extract energy Wh from a meterValue array. Per OCPP spec, absent measurand defaults to Energy.Active.Import.Register.
 function _extractEnergyWh(meterValueArray) {
   if (!meterValueArray?.length) return null
   for (const mv of meterValueArray) {
@@ -402,7 +401,7 @@ class Notify {
         this.store.upsertCurrentMeterValues(clientId, 0, params.connectorId ?? 0, params.transactionData)
       }
     }
-    eventBus.emit('transaction-close', { clientId, ocppTxId })
+    eventBus.emit('transaction-close', { clientId, evseId: 0, connectorId: params.connectorId ?? 0, ocppTxId })
 
     if (this.config.onTransaction) {
       this._send(
@@ -415,7 +414,6 @@ class Notify {
   _handleMeterValues(clientId, params) {
     const evseId = params.evseId ?? 0
     const connectorId = params.connectorId ?? 0
-    const ocppTxId = params.transactionId ?? null
     if (this.store && params.meterValue) {
       this.store.upsertCurrentMeterValues(clientId, evseId, connectorId, params.meterValue)
       eventBus.emit('ocpp-event', { type: 'meter_values', clientId })
@@ -548,25 +546,19 @@ class Notify {
     }
   }
 
-  async _send(title, message) {
-    const tasks = []
+  _send(title, message) {
     if (this.mailer) {
-      tasks.push(
-        this.mailer.send(title, message).then((res) => {
-          if (res.error) this.log.error(`Email notification failed: ${res.error}`)
-          else this.log.debug('Email notification sent')
-        })
-      )
+      this.mailer.send(title, message).then((res) => {
+        if (res.error) this.log.error(`Email notification failed: ${res.error}`)
+        else this.log.debug('Email notification sent')
+      })
     }
     if (this.pushover) {
-      tasks.push(
-        this.pushover.send(title, message).then((res) => {
-          if (res.error) this.log.error(`Pushover notification failed: ${res.error}`)
-          else this.log.debug('Pushover notification sent')
-        })
-      )
+      this.pushover.send(title, message).then((res) => {
+        if (res.error) this.log.error(`Pushover notification failed: ${res.error}`)
+        else this.log.debug('Pushover notification sent')
+      })
     }
-    if (tasks.length > 0) await Promise.allSettled(tasks)
   }
 }
 
