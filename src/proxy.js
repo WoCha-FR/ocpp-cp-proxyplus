@@ -362,6 +362,18 @@ class OcppProxy {
     return null
   }
 
+  getConnectedClientIds() {
+    return [...this.clientConnections.values()].map((info) => info.clientId)
+  }
+
+  reloadRouting() {
+    log.info('Routing config changed — dropping all client connections for reconnect')
+    this.clientConnections.forEach((_, ws) => {
+      this.cleanupClientConnection(ws)
+      if (ws.readyState === ws.OPEN) ws.close(1001, 'Routing config reloaded')
+    })
+  }
+
   cleanupClientConnection(clientWs) {
     const info = this.clientConnections.get(clientWs)
     if (!info) return

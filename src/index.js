@@ -6,6 +6,7 @@ const OcppProxy = require('./proxy')
 const Notify = require('./notify')
 const configModule = require('./config')
 const dbModule = require('./database')
+const { createHttpServer } = require('./http-server')
 const { createLogger, setLogLevel } = require('./logger')
 
 const log = createLogger('Main')
@@ -42,12 +43,14 @@ try {
   process.exit(1)
 }
 
+createHttpServer(config, db, proxy, notifier)
+
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 
 const shutdown = () => {
   log.info('Shutting down...')
   proxy.stop()
-  db.closeDb()
+  dbModule.closeDb()
   process.exit(0)
 }
 

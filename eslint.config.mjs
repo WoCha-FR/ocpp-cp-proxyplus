@@ -10,6 +10,6 @@ export default defineConfig([
   { files: ['**/*.js'], languageOptions: { sourceType: 'commonjs' } },
   { files: ['**/*.json'], plugins: { json }, language: 'json/json', extends: ['json/recommended'] },
   { files: ['**/*.md'], plugins: { markdown }, language: 'markdown/gfm', extends: ['markdown/recommended'] },
-  { ignores: ['**/node_modules/**', 'package-lock.json'] },
+  { ignores: ['**/node_modules/**', 'package-lock.json', 'public/app.js'] },
   prettierConfig,
 ])

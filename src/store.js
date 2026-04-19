@@ -50,6 +50,11 @@ class Store {
         value = excluded.value,
         unit  = excluded.unit
     `)
+    this._stmtClearTransientMV = db.prepare(`
+      DELETE FROM current_meter_values
+      WHERE client_id = @clientId AND evse_id = @evseId AND connector_id = @connectorId
+        AND measurand != 'Energy.Active.Import.Register'
+    `)
     this._stmtInsertAuth = db.prepare(`
       INSERT INTO authorizations (ts, client_id, id_tag, token_type, group_id_token, status, action)
       VALUES (@now, @clientId, @idTag, @tokenType, @groupIdToken, @status, @action)
@@ -57,6 +62,10 @@ class Store {
     this._stmtInsertFault = db.prepare(`
       INSERT INTO fault_events (ts, client_id, evse_id, connector_id, component, variable, error_code, severity, info, vendor_id, vendor_error, cleared, source)
       VALUES (@now, @clientId, @evseId, @connectorId, @component, @variable, @errorCode, @severity, @info, @vendorId, @vendorError, @cleared, @source)
+    `)
+    this._stmtClearFaults = db.prepare(`
+      UPDATE fault_events SET cleared = 1
+      WHERE client_id = @clientId AND evse_id = @evseId AND connector_id = @connectorId AND cleared = 0
     `)
   }
 
@@ -109,6 +118,10 @@ class Store {
     })
   }
 
+  clearTransientMeterValues(clientId, evseId, connectorId) {
+    this._stmtClearTransientMV.run({ clientId, evseId, connectorId })
+  }
+
   closeTransaction(clientId, ocppTxId, meterStop, stoppedAt, stopReason = null) {
     this._stmtCloseTx.run({ clientId, ocppTxId: String(ocppTxId), meterStop: meterStop ?? null, stoppedAt, stopReason })
   }
@@ -158,6 +171,11 @@ class Store {
       cleared: cleared ?? 0,
       source,
     })
+  }
+
+  clearFaultEvents(clientId, evseId, connectorId) {
+    const result = this._stmtClearFaults.run({ clientId, evseId, connectorId })
+    return result.changes
   }
 
   getFaultEvents({ page = 1, limit = 50, clientId = null, cleared = null } = {}) {

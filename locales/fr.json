@@ -71,7 +71,9 @@
     "model": "Modèle",
     "serial": "Numéro de série",
     "firmware": "Firmware",
-    "name_placeholder": "Nom personnalisé"
+    "name_placeholder": "Nom personnalisé",
+    "online": "En ligne",
+    "offline": "Hors ligne"
   },
 
   "events": {
@@ -101,6 +103,44 @@
     "col_duration": "Durée",
     "col_energy": "Énergie (kWh)",
     "in_progress": "En cours"
+  },
+
+  "commands": {
+    "title": "Commandes",
+    "send": "Envoyer",
+    "success": "Commande acceptée",
+    "rejected": "Commande refusée",
+    "timeout": "Délai dépassé (borne injoignable ?)",
+    "not_connected": "Borne non connectée",
+    "reset": "Réinitialiser",
+    "reset_type": "Type",
+    "unlock": "Déverrouiller connecteur",
+    "trigger": "Déclencher message",
+    "get_diagnostics": "Diagnostics",
+    "get_config": "Lire configuration",
+    "upload_location": "URL de destination",
+    "message_type": "Type de message",
+    "keys": "Clés (optionnel)",
+    "connector_id": "Connecteur"
+  },
+
+  "faults": {
+    "title": "Défauts",
+    "filter_client": "Filtrer par borne",
+    "all_clients": "Toutes les bornes",
+    "filter_cleared": "Afficher",
+    "active_only": "Actifs uniquement",
+    "all": "Tous",
+    "no_results": "Aucun défaut trouvé.",
+    "col_time": "Heure",
+    "col_client": "Borne",
+    "col_component": "Composant",
+    "col_error_code": "Code erreur",
+    "col_severity": "Sévérité",
+    "col_info": "Info",
+    "col_vendor": "Vendeur",
+    "col_cleared": "Résolu",
+    "active_faults": "{{count}} défaut(s) actif(s)"
   },
 
   "config": {

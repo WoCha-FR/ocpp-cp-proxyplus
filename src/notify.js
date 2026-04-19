@@ -103,11 +103,13 @@ class Notify {
   // ─── Public API called by proxy.js ───────────────────────────────────────
 
   connectedToProxy(clientId) {
+    eventBus.emit('client-connected', { clientId })
     if (!this.config.onConnect) return
     this._send(trad('notification.connected.title', { clientId }), trad('notification.connected.body', { clientId }))
   }
 
   disconnectedFromProxy(clientId) {
+    eventBus.emit('client-disconnected', { clientId })
     if (!this.config.onDisconnect) return
     this._send(trad('notification.disconnected.title', { clientId }), trad('notification.disconnected.body', { clientId }))
   }
@@ -358,6 +360,11 @@ class Notify {
         cleared: 0,
         source: 'ocpp16',
       })
+    } else {
+      const cleared = this.store?.clearFaultEvents(clientId, evseId, connectorId) ?? 0
+      if (cleared > 0) {
+        eventBus.emit('fault-cleared', { clientId, evseId, connectorId })
+      }
     }
   }
 
@@ -390,18 +397,21 @@ class Notify {
     const meterStop = params.meterStop ?? null
     const stopReason = params.reason ?? null
 
+    const connectorId = params.connectorId ?? 0
     if (this.store) {
       this.store.closeTransaction(clientId, ocppTxId, meterStop, now, stopReason)
-      this.store.insertEvent(clientId, 'stop_transaction', 0, params.connectorId ?? null, {
+      this.store.insertEvent(clientId, 'stop_transaction', 0, connectorId, {
         ocppTxId,
         meterStop,
         stopReason,
       })
       if (params.transactionData) {
-        this.store.upsertCurrentMeterValues(clientId, 0, params.connectorId ?? 0, params.transactionData)
+        this.store.upsertCurrentMeterValues(clientId, 0, connectorId, params.transactionData)
       }
+      this.store.clearTransientMeterValues(clientId, 0, connectorId)
+      eventBus.emit('meter-values-update', { clientId })
     }
-    eventBus.emit('transaction-close', { clientId, evseId: 0, connectorId: params.connectorId ?? 0, ocppTxId })
+    eventBus.emit('transaction-close', { clientId, evseId: 0, connectorId, ocppTxId })
 
     if (this.config.onTransaction) {
       this._send(
@@ -416,6 +426,7 @@ class Notify {
     const connectorId = params.connectorId ?? 0
     if (this.store && params.meterValue) {
       this.store.upsertCurrentMeterValues(clientId, evseId, connectorId, params.meterValue)
+      eventBus.emit('meter-values-update', { clientId })
       eventBus.emit('ocpp-event', { type: 'meter_values', clientId })
     }
   }
@@ -480,6 +491,7 @@ class Notify {
         }
         if (params.meterValue && this.store) {
           this.store.upsertCurrentMeterValues(clientId, evseId, connectorId, params.meterValue)
+          eventBus.emit('meter-values-update', { clientId })
         }
         this.store?.insertEvent(clientId, 'transaction_event', evseId, connectorId, {
           eventType,
@@ -496,6 +508,10 @@ class Notify {
         this.store?.closeTransaction(clientId, ocppTxId, meterStop, now, stopReason)
         this.store?.upsertConnectorStatus(clientId, evseId, connectorId, 'Available', null, null)
         this.store?.insertEvent(clientId, 'transaction_event', evseId, connectorId, { eventType, ocppTxId, stopReason })
+        if (this.store) {
+          this.store.clearTransientMeterValues(clientId, evseId, connectorId)
+          eventBus.emit('meter-values-update', { clientId })
+        }
         eventBus.emit('transaction-close', { clientId, evseId, connectorId, ocppTxId })
         eventBus.emit('status-update', { clientId, evseId, connectorId, status: 'Available' })
         eventBus.emit('ocpp-event', { type: 'transaction_event', clientId })

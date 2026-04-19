@@ -71,7 +71,9 @@
     "model": "Model",
     "serial": "Serial number",
     "firmware": "Firmware",
-    "name_placeholder": "Custom name"
+    "name_placeholder": "Custom name",
+    "online": "Online",
+    "offline": "Offline"
   },
 
   "events": {
@@ -101,6 +103,44 @@
     "col_duration": "Duration",
     "col_energy": "Energy (kWh)",
     "in_progress": "In progress"
+  },
+
+  "commands": {
+    "title": "Commands",
+    "send": "Send",
+    "success": "Command accepted",
+    "rejected": "Command rejected",
+    "timeout": "Timeout (charge point unreachable?)",
+    "not_connected": "Charge point not connected",
+    "reset": "Reset",
+    "reset_type": "Type",
+    "unlock": "Unlock connector",
+    "trigger": "Trigger message",
+    "get_diagnostics": "Diagnostics",
+    "get_config": "Read configuration",
+    "upload_location": "Destination URL",
+    "message_type": "Message type",
+    "keys": "Keys (optional)",
+    "connector_id": "Connector"
+  },
+
+  "faults": {
+    "title": "Faults",
+    "filter_client": "Filter by charge point",
+    "all_clients": "All charge points",
+    "filter_cleared": "Show",
+    "active_only": "Active only",
+    "all": "All",
+    "no_results": "No faults found.",
+    "col_time": "Time",
+    "col_client": "Charge point",
+    "col_component": "Component",
+    "col_error_code": "Error code",
+    "col_severity": "Severity",
+    "col_info": "Info",
+    "col_vendor": "Vendor",
+    "col_cleared": "Resolved",
+    "active_faults": "{{count}} active fault(s)"
   },
 
   "config": {
