@@ -18,12 +18,7 @@ function createHttpServer(config, db, proxy, notifier) {
   app.use(express.json())
 
   if (config.dashboard?.username) {
-    app.use(
-      basicAuth({
-        users: { [config.dashboard.username]: config.dashboard.password ?? '' },
-        challenge: true,
-      })
-    )
+    app.use(basicAuth({ users: { [config.dashboard.username]: config.dashboard.password ?? '' }, challenge: true }))
   }
 
   app.use('/locales', express.static(LOCALES_DIR))
@@ -48,7 +43,9 @@ function createHttpServer(config, db, proxy, notifier) {
 
   app.get('/api/events', (req, res) => {
     const { page, limit, type, clientId } = req.query
-    res.json(store.getEvents({ page: page ? +page : 1, limit: limit ? +limit : 50, type: type || null, clientId: clientId || null }))
+    res.json(
+      store.getEvents({ page: page ? +page : 1, limit: limit ? +limit : 50, type: type || null, clientId: clientId || null })
+    )
   })
 
   app.get('/api/faults', (req, res) => {
@@ -125,9 +122,7 @@ function createHttpServer(config, db, proxy, notifier) {
       case 'reset':
         ocppAction = 'Reset'
         ocppParams =
-          protocol === 'ocpp2.0.1'
-            ? { type: body.type === 'Hard' ? 'Immediate' : 'OnIdle' }
-            : { type: body.type ?? 'Soft' }
+          protocol === 'ocpp2.0.1' ? { type: body.type === 'Hard' ? 'Immediate' : 'OnIdle' } : { type: body.type ?? 'Soft' }
         break
       case 'unlock':
         ocppAction = 'UnlockConnector'
@@ -204,6 +199,12 @@ function createHttpServer(config, db, proxy, notifier) {
       clearInterval(heartbeat)
       for (const [event, handler] of Object.entries(handlers)) eventBus.off(event, handler)
     })
+  })
+
+  // ─── HEALTHCHECK ─────────────────────────────────────────────────────────
+
+  app.get('/healthz', (req, res) => {
+    res.status(200).json({ status: 'ok' })
   })
 
   const port = config.dashboard?.port ?? 3000

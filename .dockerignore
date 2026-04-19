@@ -1,0 +1,28 @@
+# Dev/CI tooling
+.git/
+.github/
+.vscode/
+.editorconfig
+.prettierrc
+eslint.config.mjs
+
+# Docs
+*.md
+LICENSE
+
+# Dependencies (rebuilt inside image)
+node_modules/
+
+# Logs & runtime data
+logs/
+*.log
+*.pid
+cpproxy.db*
+
+# Dev config (provided via volume at runtime)
+config/config.json
+config/config.dev.json
+
+# OS artefacts
+.DS_Store
+Thumbs.db
