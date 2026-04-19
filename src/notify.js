@@ -55,16 +55,9 @@ class Notify {
     this.mailer = null
     this.pushover = null
 
-    if (cfg.email?.enabled && cfg.email.host && cfg.email.user && cfg.email.pass) {
+    if (cfg.email?.enabled && cfg.email.transport) {
       try {
-        this.mailer = new Mailer({
-          ...cfg.email,
-          transporter: {
-            host: cfg.email.host,
-            port: cfg.email.port ?? 587,
-            auth: { user: cfg.email.user, pass: cfg.email.pass },
-          },
-        })
+        this.mailer = new Mailer({ from: cfg.email.from, to: cfg.email.to, transporter: cfg.email.transport })
         this.log.info('Email notifications enabled')
       } catch (err) {
         this.log.error(`Failed to init email: ${err.message}`)
@@ -400,11 +393,7 @@ class Notify {
     const connectorId = params.connectorId ?? 0
     if (this.store) {
       this.store.closeTransaction(clientId, ocppTxId, meterStop, now, stopReason)
-      this.store.insertEvent(clientId, 'stop_transaction', 0, connectorId, {
-        ocppTxId,
-        meterStop,
-        stopReason,
-      })
+      this.store.insertEvent(clientId, 'stop_transaction', 0, connectorId, { ocppTxId, meterStop, stopReason })
       if (params.transactionData) {
         this.store.upsertCurrentMeterValues(clientId, 0, connectorId, params.transactionData)
       }

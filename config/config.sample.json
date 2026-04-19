@@ -1,7 +1,7 @@
 {
   "logLevel": "info",
   "lang": "fr",
-  "routing": { "default": ["ws://ws1.ocpp.fr/", "ws://ws2.ocpp.fr/"], "STATION01": ["ws://specific.ocpp.fr/"] },
+  "routing": { "default": ["ws://ws1.ocpp.fr/", "ws://ws2.ocpp.fr/"] },
   "maxBufferSize": 100,
   "callTimeoutMs": 30000,
   "heartbeatIntervalMs": 30000,
@@ -16,12 +16,9 @@
     "onTransaction": true,
     "email": {
       "enabled": false,
-      "host": "smtp.example.com",
-      "port": 587,
-      "user": "",
-      "pass": "",
       "from": "ocpp@example.com",
-      "to": "admin@example.com"
+      "to": "admin@example.com",
+      "transport": { "host": "smtp.example.com", "port": 587, "auth": { "user": "", "pass": "" } }
     },
     "pushover": { "enabled": false, "token": "", "user": "" }
   }

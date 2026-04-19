@@ -1,111 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OCPP Proxy+</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <header>
-    <h1>OCPP Proxy+</h1>
-    <div id="lang-switcher"></div>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OCPP Proxy+</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>OCPP Proxy+</h1>
+      <div id="lang-switcher"></div>
+    </header>
 
-  <nav id="main-nav">
-    <button class="nav-btn active" data-tab="status" data-i18n="nav.status">État</button>
-    <button class="nav-btn" data-tab="events" data-i18n="nav.events">Événements</button>
-    <button class="nav-btn" data-tab="transactions" data-i18n="nav.transactions">Transactions</button>
-    <button class="nav-btn" data-tab="config" data-i18n="nav.config">Configuration</button>
-  </nav>
+    <nav id="main-nav">
+      <button class="nav-btn active" data-tab="status" data-i18n="nav.status">État</button>
+      <button class="nav-btn" data-tab="events" data-i18n="nav.events">Événements</button>
+      <button class="nav-btn" data-tab="transactions" data-i18n="nav.transactions">Transactions</button>
+      <button class="nav-btn" data-tab="config" data-i18n="nav.config">Configuration</button>
+    </nav>
 
-  <main>
-    <!-- Tab 1: Status -->
-    <section id="tab-status" class="tab active">
-      <div id="status-grid"></div>
-    </section>
+    <main>
+      <!-- Tab 1: Status -->
+      <section id="tab-status" class="tab active">
+        <div id="status-grid"></div>
+      </section>
 
-    <!-- Tab 2: Events / Faults -->
-    <section id="tab-events" class="tab">
-      <nav class="sub-nav">
-        <button class="sub-nav-btn active" data-subtab="events" data-i18n="events.title">Événements</button>
-        <button class="sub-nav-btn" data-subtab="faults" data-i18n="faults.title">Défauts</button>
-      </nav>
+      <!-- Tab 2: Events / Faults -->
+      <section id="tab-events" class="tab">
+        <nav class="sub-nav">
+          <button class="sub-nav-btn active" data-subtab="events" data-i18n="events.title">Événements</button>
+          <button class="sub-nav-btn" data-subtab="faults" data-i18n="faults.title">Défauts</button>
+        </nav>
 
-      <div id="subtab-events" class="subtab active">
+        <div id="subtab-events" class="subtab active">
+          <div class="filters">
+            <select id="events-type-filter"></select>
+            <select id="events-client-filter"></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="events.col_time"></th>
+                  <th data-i18n="events.col_type"></th>
+                  <th data-i18n="events.col_client"></th>
+                  <th data-i18n="events.col_connector"></th>
+                  <th data-i18n="events.col_payload"></th>
+                </tr>
+              </thead>
+              <tbody id="events-tbody"></tbody>
+            </table>
+          </div>
+          <div id="events-pagination" class="pagination"></div>
+        </div>
+
+        <div id="subtab-faults" class="subtab">
+          <div class="filters">
+            <select id="faults-client-filter"></select>
+            <select id="faults-cleared-filter"></select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="faults.col_time"></th>
+                  <th data-i18n="faults.col_client"></th>
+                  <th data-i18n="faults.col_component"></th>
+                  <th data-i18n="faults.col_error_code"></th>
+                  <th data-i18n="faults.col_severity"></th>
+                  <th data-i18n="faults.col_info"></th>
+                  <th data-i18n="faults.col_vendor"></th>
+                  <th data-i18n="faults.col_cleared"></th>
+                </tr>
+              </thead>
+              <tbody id="faults-tbody"></tbody>
+            </table>
+          </div>
+          <div id="faults-pagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- Tab 3: Transactions -->
+      <section id="tab-transactions" class="tab">
         <div class="filters">
-          <select id="events-type-filter"></select>
-          <select id="events-client-filter"></select>
+          <select id="tx-client-filter"></select>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr>
-              <th data-i18n="events.col_time"></th>
-              <th data-i18n="events.col_type"></th>
-              <th data-i18n="events.col_client"></th>
-              <th data-i18n="events.col_connector"></th>
-              <th data-i18n="events.col_payload"></th>
-            </tr></thead>
-            <tbody id="events-tbody"></tbody>
+            <thead>
+              <tr>
+                <th data-i18n="transactions.col_client"></th>
+                <th data-i18n="transactions.col_connector"></th>
+                <th data-i18n="transactions.col_id_tag"></th>
+                <th data-i18n="transactions.col_started"></th>
+                <th data-i18n="transactions.col_stopped"></th>
+                <th data-i18n="transactions.col_duration"></th>
+                <th data-i18n="transactions.col_energy"></th>
+              </tr>
+            </thead>
+            <tbody id="tx-tbody"></tbody>
           </table>
         </div>
-        <div id="events-pagination" class="pagination"></div>
-      </div>
+        <div id="tx-pagination" class="pagination"></div>
+      </section>
 
-      <div id="subtab-faults" class="subtab">
-        <div class="filters">
-          <select id="faults-client-filter"></select>
-          <select id="faults-cleared-filter"></select>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th data-i18n="faults.col_time"></th>
-              <th data-i18n="faults.col_client"></th>
-              <th data-i18n="faults.col_component"></th>
-              <th data-i18n="faults.col_error_code"></th>
-              <th data-i18n="faults.col_severity"></th>
-              <th data-i18n="faults.col_info"></th>
-              <th data-i18n="faults.col_vendor"></th>
-              <th data-i18n="faults.col_cleared"></th>
-            </tr></thead>
-            <tbody id="faults-tbody"></tbody>
-          </table>
-        </div>
-        <div id="faults-pagination" class="pagination"></div>
-      </div>
-    </section>
+      <!-- Tab 4: Config -->
+      <section id="tab-config" class="tab">
+        <div id="config-container"></div>
+      </section>
+    </main>
 
-    <!-- Tab 3: Transactions -->
-    <section id="tab-transactions" class="tab">
-      <div class="filters">
-        <select id="tx-client-filter"></select>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th data-i18n="transactions.col_client"></th>
-            <th data-i18n="transactions.col_connector"></th>
-            <th data-i18n="transactions.col_id_tag"></th>
-            <th data-i18n="transactions.col_started"></th>
-            <th data-i18n="transactions.col_stopped"></th>
-            <th data-i18n="transactions.col_duration"></th>
-            <th data-i18n="transactions.col_energy"></th>
-          </tr></thead>
-          <tbody id="tx-tbody"></tbody>
-        </table>
-      </div>
-      <div id="tx-pagination" class="pagination"></div>
-    </section>
+    <div id="toast" class="toast hidden"></div>
 
-    <!-- Tab 4: Config -->
-    <section id="tab-config" class="tab">
-      <div id="config-container"></div>
-    </section>
-  </main>
-
-  <div id="toast" class="toast hidden"></div>
-
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>

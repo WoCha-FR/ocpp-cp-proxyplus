@@ -1,14 +1,13 @@
 const express = require('express')
 const basicAuth = require('express-basic-auth')
 const path = require('path')
-const fs = require('fs')
 const Store = require('./store')
 const { writeConfig } = require('./config-writer')
 const { createLogger } = require('./logger')
 const eventBus = require('./event-bus')
+const { i18next, SUPPORTED_LANGUAGES } = require('./i18n')
 
 const log = createLogger('HttpServer')
-const LOCALES_DIR = path.join(__dirname, '..', 'locales')
 const PUBLIC_DIR = path.join(__dirname, '..', 'public')
 
 function createHttpServer(config, db, proxy, notifier) {
@@ -21,7 +20,6 @@ function createHttpServer(config, db, proxy, notifier) {
     app.use(basicAuth({ users: { [config.dashboard.username]: config.dashboard.password ?? '' }, challenge: true }))
   }
 
-  app.use('/locales', express.static(LOCALES_DIR))
   app.use(express.static(PUBLIC_DIR))
 
   // ─── Chargepoints & Status ────────────────────────────────────────────────
@@ -77,7 +75,7 @@ function createHttpServer(config, db, proxy, notifier) {
   })
 
   app.put('/api/config/email', (req, res) => {
-    config.notify.email = { ...config.notify.email, ...req.body }
+    config.notify.email = req.body
     writeConfig(config)
     notifier?.reload()
     res.json({ ok: true })
@@ -97,14 +95,16 @@ function createHttpServer(config, db, proxy, notifier) {
     res.json({ ok: true })
   })
 
-  // ─── Locale metadata ──────────────────────────────────────────────────────
+  // ─── Locale ───────────────────────────────────────────────────────────────
 
   app.get('/api/locale', (_req, res) => {
-    const supported = fs
-      .readdirSync(LOCALES_DIR)
-      .filter((f) => f.endsWith('.json'))
-      .map((f) => f.replace('.json', ''))
-    res.json({ lang: config.lang ?? 'fr', supported })
+    res.json({ lang: config.lang ?? 'fr', supported: SUPPORTED_LANGUAGES })
+  })
+
+  app.get('/api/locale/:lang', (req, res) => {
+    const { lang } = req.params
+    if (!SUPPORTED_LANGUAGES.includes(lang)) return res.status(404).json({ error: 'unsupported_language' })
+    res.json(i18next.getResourceBundle(lang, 'translation'))
   })
 
   // ─── Commands ─────────────────────────────────────────────────────────────

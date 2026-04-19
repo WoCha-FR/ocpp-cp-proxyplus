@@ -1,7 +1,7 @@
 {
   "name": "ocpp-cp-proxyplus",
   "version": "1.0.0",
-  "description": "A 1 or 2 way ocpp proxy with alert system on ChargePoint events",
+  "description": "Bidirectional OCPP 1.6 WebSocket proxy with event-based alerts, email/push notifications and a web dashboard for charge point monitoring",
   "keywords": [
     "ocpp",
     "proxy",

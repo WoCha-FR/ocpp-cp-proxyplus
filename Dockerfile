@@ -1,7 +1,7 @@
 FROM node:22-alpine3.22
 
-LABEL org.opencontainers.image.title="OCPP CP Proxy Plus"
-LABEL org.opencontainers.image.description="A 1 or 2 way ocpp proxy with alert system on ChargePoint events"
+LABEL org.opencontainers.image.title="ocpp-cp-proxyplus"
+LABEL org.opencontainers.image.description="Bidirectional OCPP 1.6 WebSocket proxy with event-based alerts, email/push notifications and a web dashboard for charge point monitoring"
 LABEL org.opencontainers.image.url="https://github.com/WoCha-FR/ocpp-cp-proxyplus"
 LABEL org.opencontainers.image.source="https://github.com/WoCha-FR/ocpp-cp-proxyplus"
 LABEL org.opencontainers.image.documentation="https://github.com/WoCha-FR/ocpp-cp-proxyplus#README.md"

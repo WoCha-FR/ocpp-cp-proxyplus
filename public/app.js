@@ -9,8 +9,10 @@ async function initLocale() {
     const saved = localStorage.getItem('lang')
     const browser = navigator.language.split('-')[0]
     currentLang = saved || (meta.supported.includes(browser) ? browser : meta.lang)
-    locale = await api('GET', `/locales/${currentLang}.json`)
-    renderLangSwitcher(meta.supported)
+    const allLocales = await Promise.all(meta.supported.map((l) => api('GET', `/api/locale/${l}`)))
+    locale = allLocales[meta.supported.indexOf(currentLang)]
+    const labels = Object.fromEntries(meta.supported.map((l, i) => [l, allLocales[i].language_label || l]))
+    renderLangSwitcher(meta.supported, labels)
   } catch {
     currentLang = 'fr'
   }
@@ -33,11 +35,14 @@ function applyI18n() {
   })
 }
 
-function renderLangSwitcher(supported) {
+function renderLangSwitcher(supported, labels = {}) {
   const el = document.getElementById('lang-switcher')
   if (!el) return
   el.innerHTML = supported
-    .map((lang) => `<button class="lang-btn${lang === currentLang ? ' active' : ''}" data-lang="${lang}">${lang.toUpperCase()}</button>`)
+    .map(
+      (lang) =>
+        `<button class="lang-btn${lang === currentLang ? ' active' : ''}" data-lang="${lang}">${labels[lang] || lang}</button>`
+    )
     .join('')
   el.querySelectorAll('.lang-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -144,10 +149,10 @@ function setupNav() {
 
 // ─── Status Tab ───────────────────────────────────────────────────────────────
 
-let cpInfo = {}          // clientId → chargepoint row
-let connectorMap = {}    // clientId → connector status rows[]
-let meterMap = {}        // clientId → meter value rows[]
-let activeFaultCount = {}// clientId → count
+let cpInfo = {} // clientId → chargepoint row
+let connectorMap = {} // clientId → connector status rows[]
+let meterMap = {} // clientId → meter value rows[]
+let activeFaultCount = {} // clientId → count
 let onlineClients = new Set() // clientIds currently connected to proxy
 
 const STATUS_COLOR = {
@@ -263,15 +268,18 @@ function renderCPCard(clientId) {
   const isOnline = onlineClients.has(clientId)
   const onlineBadge = `<span class="cp-online-badge ${isOnline ? 'online' : 'offline'}" data-client-id="${esc(clientId)}">${esc(isOnline ? t('chargepoint.online') : t('chargepoint.offline'))}</span>`
 
-  const faultBadge = faultCount > 0
-    ? `<button class="fault-badge" data-client-id="${esc(clientId)}" title="${esc(t('faults.active_faults', { count: faultCount }))}">⚠ ${faultCount}</button>`
-    : ''
+  const faultBadge =
+    faultCount > 0
+      ? `<button class="fault-badge" data-client-id="${esc(clientId)}" title="${esc(t('faults.active_faults', { count: faultCount }))}">⚠ ${faultCount}</button>`
+      : ''
 
   const meta = [
     cp.vendor ? `${esc(t('chargepoint.vendor'))}: ${esc(cp.vendor)}` : '',
     cp.model ? `${esc(t('chargepoint.model'))}: ${esc(cp.model)}` : '',
     cp.last_seen ? `${esc(t('chargepoint.last_seen'))}: ${formatTs(cp.last_seen)}` : '',
-  ].filter(Boolean).join(' · ')
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   const badges = connectors.map((c) => renderConnectorBadge(c, meters)).join('')
 
@@ -310,7 +318,10 @@ function renderConnectorBadge(c, meters) {
 
   const connMeters = meters.filter((m) => m.evse_id === c.evse_id && m.connector_id === c.connector_id)
   const metersHtml = connMeters
-    .map((m) => `<span class="meter-val">${esc(m.measurand.split('.').pop())}: ${esc(Number(m.value).toFixed(1))} ${esc(m.unit ?? '')}</span>`)
+    .map(
+      (m) =>
+        `<span class="meter-val">${esc(m.measurand.split('.').pop())}: ${esc(Number(m.value).toFixed(1))} ${esc(m.unit ?? '')}</span>`
+    )
     .join('')
 
   return `
@@ -402,7 +413,10 @@ function setupCommandPanels(container) {
         body[input.name] = input.value
       })
       if (action === 'get-config' && body.keys) {
-        body.keys = body.keys.split(',').map((k) => k.trim()).filter(Boolean)
+        body.keys = body.keys
+          .split(',')
+          .map((k) => k.trim())
+          .filter(Boolean)
       }
       if (action === 'unlock') body.connectorId = +body.connectorId
 
@@ -414,9 +428,7 @@ function setupCommandPanels(container) {
         resultDiv.innerHTML = `<span class="result-ok">${esc(result.status)} — ${esc(JSON.stringify(result.result))}</span>`
       } catch (err) {
         const msg =
-          err.status === 404 ? t('commands.not_connected')
-          : err.status === 408 ? t('commands.timeout')
-          : t('toast.error')
+          err.status === 404 ? t('commands.not_connected') : err.status === 408 ? t('commands.timeout') : t('toast.error')
         resultDiv.innerHTML = `<span class="result-err">${esc(msg)}</span>`
       } finally {
         sendBtn.disabled = false
@@ -428,9 +440,16 @@ function setupCommandPanels(container) {
 // ─── Events Tab ───────────────────────────────────────────────────────────────
 
 const EVENT_TYPES = [
-  'connected_proxy', 'disconnected_proxy', 'connected_upstream', 'disconnected_upstream',
-  'status_notification', 'start_transaction', 'stop_transaction', 'transaction_event',
-  'authorize', 'boot_notification',
+  'connected_proxy',
+  'disconnected_proxy',
+  'connected_upstream',
+  'disconnected_upstream',
+  'status_notification',
+  'start_transaction',
+  'stop_transaction',
+  'transaction_event',
+  'authorize',
+  'boot_notification',
 ]
 
 let eventPage = 1
@@ -446,13 +465,24 @@ function setupEventsFilters() {
 
   clientEl.innerHTML =
     `<option value="">${t('events.all_clients')}</option>` +
-    Object.keys(cpInfo).sort().map((id) => `<option value="${esc(id)}">${esc(cpInfo[id]?.name || id)}</option>`).join('')
+    Object.keys(cpInfo)
+      .sort()
+      .map((id) => `<option value="${esc(id)}">${esc(cpInfo[id]?.name || id)}</option>`)
+      .join('')
 
   typeEl.value = eventFilters.type
   clientEl.value = eventFilters.clientId
 
-  typeEl.addEventListener('change', () => { eventFilters.type = typeEl.value; eventPage = 1; loadEvents() })
-  clientEl.addEventListener('change', () => { eventFilters.clientId = clientEl.value; eventPage = 1; loadEvents() })
+  typeEl.addEventListener('change', () => {
+    eventFilters.type = typeEl.value
+    eventPage = 1
+    loadEvents()
+  })
+  clientEl.addEventListener('change', () => {
+    eventFilters.clientId = clientEl.value
+    eventPage = 1
+    loadEvents()
+  })
 }
 
 async function loadEvents() {
@@ -466,15 +496,22 @@ async function loadEvents() {
 function renderEventsTable({ rows, total, page, limit }) {
   const tbody = document.getElementById('events-tbody')
   tbody.innerHTML = rows.length
-    ? rows.map((r) => `<tr>
+    ? rows
+        .map(
+          (r) => `<tr>
         <td>${formatTs(r.ts)}</td>
         <td><span class="event-type">${esc(r.type)}</span></td>
         <td>${esc(cpInfo[r.client_id]?.name || r.client_id)}</td>
         <td>${r.connector_id != null ? esc(r.connector_id) : '—'}</td>
         <td>${r.payload ? `<details><summary>…</summary><pre>${esc(JSON.stringify(JSON.parse(r.payload), null, 2))}</pre></details>` : '—'}</td>
-      </tr>`).join('')
+      </tr>`
+        )
+        .join('')
     : `<tr><td colspan="5" class="empty">${t('events.no_results')}</td></tr>`
-  renderPagination('events-pagination', total, page, limit, (pg) => { eventPage = pg; loadEvents() })
+  renderPagination('events-pagination', total, page, limit, (pg) => {
+    eventPage = pg
+    loadEvents()
+  })
 }
 
 // ─── Faults Tab ───────────────────────────────────────────────────────────────
@@ -488,7 +525,10 @@ function setupFaultsFilters() {
 
   clientEl.innerHTML =
     `<option value="">${t('faults.all_clients')}</option>` +
-    Object.keys(cpInfo).sort().map((id) => `<option value="${esc(id)}">${esc(cpInfo[id]?.name || id)}</option>`).join('')
+    Object.keys(cpInfo)
+      .sort()
+      .map((id) => `<option value="${esc(id)}">${esc(cpInfo[id]?.name || id)}</option>`)
+      .join('')
 
   clearedEl.innerHTML = `
     <option value="">${t('faults.all')}</option>
@@ -497,8 +537,16 @@ function setupFaultsFilters() {
   clientEl.value = faultFilters.clientId
   clearedEl.value = faultFilters.cleared
 
-  clientEl.addEventListener('change', () => { faultFilters.clientId = clientEl.value; faultPage = 1; loadFaults() })
-  clearedEl.addEventListener('change', () => { faultFilters.cleared = clearedEl.value; faultPage = 1; loadFaults() })
+  clientEl.addEventListener('change', () => {
+    faultFilters.clientId = clientEl.value
+    faultPage = 1
+    loadFaults()
+  })
+  clearedEl.addEventListener('change', () => {
+    faultFilters.cleared = clearedEl.value
+    faultPage = 1
+    loadFaults()
+  })
 }
 
 async function loadFaults() {
@@ -512,7 +560,9 @@ async function loadFaults() {
 function renderFaultsTable({ rows, total, page, limit }) {
   const tbody = document.getElementById('faults-tbody')
   tbody.innerHTML = rows.length
-    ? rows.map((r) => `<tr>
+    ? rows
+        .map(
+          (r) => `<tr>
         <td>${formatTs(r.ts)}</td>
         <td>${esc(cpInfo[r.client_id]?.name || r.client_id)}</td>
         <td>${esc(r.component ?? '—')}</td>
@@ -521,9 +571,14 @@ function renderFaultsTable({ rows, total, page, limit }) {
         <td>${esc(r.info ?? '—')}</td>
         <td>${esc(r.vendor_id ?? '—')}</td>
         <td>${r.cleared ? '✓' : '✗'}</td>
-      </tr>`).join('')
+      </tr>`
+        )
+        .join('')
     : `<tr><td colspan="8" class="empty">${t('faults.no_results')}</td></tr>`
-  renderPagination('faults-pagination', total, page, limit, (pg) => { faultPage = pg; loadFaults() })
+  renderPagination('faults-pagination', total, page, limit, (pg) => {
+    faultPage = pg
+    loadFaults()
+  })
 }
 
 // ─── Transactions Tab ─────────────────────────────────────────────────────────
@@ -535,9 +590,16 @@ function setupTxFilters() {
   const clientEl = document.getElementById('tx-client-filter')
   clientEl.innerHTML =
     `<option value="">${t('transactions.all_clients')}</option>` +
-    Object.keys(cpInfo).sort().map((id) => `<option value="${esc(id)}">${esc(cpInfo[id]?.name || id)}</option>`).join('')
+    Object.keys(cpInfo)
+      .sort()
+      .map((id) => `<option value="${esc(id)}">${esc(cpInfo[id]?.name || id)}</option>`)
+      .join('')
   clientEl.value = txFilters.clientId
-  clientEl.addEventListener('change', () => { txFilters.clientId = clientEl.value; txPage = 1; loadTransactions() })
+  clientEl.addEventListener('change', () => {
+    txFilters.clientId = clientEl.value
+    txPage = 1
+    loadTransactions()
+  })
 }
 
 async function loadTransactions() {
@@ -550,7 +612,9 @@ async function loadTransactions() {
 function renderTxTable({ rows, total, page, limit }) {
   const tbody = document.getElementById('tx-tbody')
   tbody.innerHTML = rows.length
-    ? rows.map((r) => `<tr>
+    ? rows
+        .map(
+          (r) => `<tr>
         <td>${esc(r.name || r.client_id)}</td>
         <td>${esc(r.connector_id)}</td>
         <td>${esc(r.id_tag ?? '—')}</td>
@@ -558,9 +622,14 @@ function renderTxTable({ rows, total, page, limit }) {
         <td>${r.stopped_at ? formatTs(r.stopped_at) : `<em>${t('transactions.in_progress')}</em>`}</td>
         <td>${formatDuration(r.duration_ms)}</td>
         <td>${formatEnergy(r.energy_wh)}</td>
-      </tr>`).join('')
+      </tr>`
+        )
+        .join('')
     : `<tr><td colspan="7" class="empty">${t('transactions.no_results')}</td></tr>`
-  renderPagination('tx-pagination', total, page, limit, (pg) => { txPage = pg; loadTransactions() })
+  renderPagination('tx-pagination', total, page, limit, (pg) => {
+    txPage = pg
+    loadTransactions()
+  })
 }
 
 // ─── Config Tab ───────────────────────────────────────────────────────────────
@@ -606,12 +675,17 @@ function renderConfig(cfg) {
     <div class="config-section">
       <h3>${t('config.section_email')}</h3>
       ${toggle('email_enabled', em.enabled, t('config.email_enabled'))}
-      ${field('email_host', em.host ?? '', t('config.email_host'))}
-      ${field('email_port', em.port ?? 587, t('config.email_port'), 'number')}
-      ${field('email_user', em.user ?? '', t('config.email_user'))}
-      ${field('email_pass', em.pass ?? '', t('config.email_pass'), 'password')}
+      <div class="form-field">
+        <label>${esc(t('config.email_mode'))}</label>
+        <select id="email-mode">
+          <option value="smtp"    ${emailMode(em) === 'smtp' ? 'selected' : ''}>${esc(t('config.email_mode_smtp'))}</option>
+          <option value="service" ${emailMode(em) === 'service' ? 'selected' : ''}>${esc(t('config.email_mode_service'))}</option>
+          <option value="sendmail"${emailMode(em) === 'sendmail' ? 'selected' : ''}>${esc(t('config.email_mode_sendmail'))}</option>
+        </select>
+      </div>
       ${field('email_from', em.from ?? '', t('config.email_from'))}
       ${field('email_to', em.to ?? '', t('config.email_to'))}
+      <div id="email-transport-fields">${renderEmailTransportFields(emailMode(em), em.transport)}</div>
       <button class="btn-primary" id="save-email">${t('action.save')}</button>
     </div>
 
@@ -640,19 +714,54 @@ function field(name, value, label, type = 'text') {
   </div>`
 }
 
+function emailMode(em) {
+  const tr = em?.transport ?? {}
+  if (tr.sendmail) return 'sendmail'
+  if (tr.service) return 'service'
+  return 'smtp'
+}
+
+function renderEmailTransportFields(mode, tr) {
+  tr = tr ?? {}
+  if (mode === 'service') {
+    return `
+      <div class="form-field">
+        <label>${esc(t('config.email_service_name'))}</label>
+        <input type="text" name="email_t_service" value="${esc(tr.service ?? '')}" list="email-services">
+        <datalist id="email-services">
+          <option value="Gmail"><option value="Outlook"><option value="Hotmail">
+          <option value="Yahoo"><option value="SendGrid"><option value="Mailgun">
+        </datalist>
+      </div>
+      ${field('email_t_user', tr.auth?.user ?? '', t('config.email_user'))}
+      ${field('email_t_pass', tr.auth?.pass ?? '', t('config.email_pass'), 'password')}`
+  }
+  if (mode === 'sendmail') {
+    return field('email_t_path', tr.path ?? '/usr/sbin/sendmail', t('config.email_sendmail_path'))
+  }
+  return `
+    ${field('email_t_host', tr.host ?? '', t('config.email_smtp_host'))}
+    ${field('email_t_port', tr.port ?? 587, t('config.email_port'), 'number')}
+    ${toggle('email_t_secure', tr.secure ?? false, t('config.email_smtp_secure'))}
+    ${field('email_t_user', tr.auth?.user ?? '', t('config.email_user'))}
+    ${field('email_t_pass', tr.auth?.pass ?? '', t('config.email_pass'), 'password')}`
+}
+
 function renderRoutingTable(routing) {
-  const rows = Object.entries(routing).map(([clientId, urls]) => {
-    const isDefault = clientId === 'default'
-    const clientCell = isDefault
-      ? `<em>${t('config.routing_default_label')}</em> <small>${t('config.routing_default_hint')}</small>`
-      : `<input type="text" class="routing-client" value="${esc(clientId)}">`
-    const urlVal = Array.isArray(urls) ? urls.join(', ') : String(urls)
-    return `<tr data-client="${esc(clientId)}">
+  const rows = Object.entries(routing)
+    .map(([clientId, urls]) => {
+      const isDefault = clientId === 'default'
+      const clientCell = isDefault
+        ? `<em>${t('config.routing_default_label')}</em> <small>${t('config.routing_default_hint')}</small>`
+        : `<input type="text" class="routing-client" value="${esc(clientId)}">`
+      const urlVal = Array.isArray(urls) ? urls.join(', ') : String(urls)
+      return `<tr data-client="${esc(clientId)}">
       <td>${clientCell}</td>
       <td><input type="text" class="routing-url" value="${esc(urlVal)}"></td>
       <td>${!isDefault ? `<button class="btn-danger routing-delete">${t('action.delete')}</button>` : ''}</td>
     </tr>`
-  }).join('')
+    })
+    .join('')
 
   return `<table class="routing-table">
     <thead><tr>
@@ -673,20 +782,44 @@ function setupConfigHandlers(cfg) {
       await api('PUT', '/api/config/notify', body)
       Object.assign(cfg.notify, body)
       showToast(t('toast.saved'))
-    } catch { showToast(t('toast.error'), true) }
+    } catch {
+      showToast(t('toast.error'), true)
+    }
   })
 
-  // Email
+  // Email — mode switch
+  document.getElementById('email-mode')?.addEventListener('change', (e) => {
+    document.getElementById('email-transport-fields').innerHTML = renderEmailTransportFields(e.target.value, {})
+  })
+
+  // Email — save
   document.getElementById('save-email')?.addEventListener('click', async () => {
-    const body = {}
-    document.querySelectorAll('[name^="email_"]').forEach((input) => {
-      const key = input.name.replace('email_', '')
-      body[key] = input.type === 'checkbox' ? input.checked : input.type === 'number' ? +input.value : input.value
-    })
+    const get = (name) => document.querySelector(`[name="${name}"]`)
+    const val = (name) => get(name)?.value ?? ''
+    const chk = (name) => get(name)?.checked ?? false
+    const mode = document.getElementById('email-mode').value
+
+    let transport
+    if (mode === 'service') {
+      transport = { service: val('email_t_service'), auth: { user: val('email_t_user'), pass: val('email_t_pass') } }
+    } else if (mode === 'sendmail') {
+      transport = { sendmail: true, path: val('email_t_path') }
+    } else {
+      transport = {
+        host: val('email_t_host'),
+        port: +val('email_t_port') || 587,
+        secure: chk('email_t_secure'),
+        auth: { user: val('email_t_user'), pass: val('email_t_pass') },
+      }
+    }
+
+    const body = { enabled: chk('email_enabled'), from: val('email_from'), to: val('email_to'), transport }
     try {
       await api('PUT', '/api/config/email', body)
       showToast(t('toast.saved'))
-    } catch { showToast(t('toast.error'), true) }
+    } catch {
+      showToast(t('toast.error'), true)
+    }
   })
 
   // Pushover
@@ -699,7 +832,9 @@ function setupConfigHandlers(cfg) {
     try {
       await api('PUT', '/api/config/pushover', body)
       showToast(t('toast.saved'))
-    } catch { showToast(t('toast.error'), true) }
+    } catch {
+      showToast(t('toast.error'), true)
+    }
   })
 
   // Routing — add row
@@ -728,13 +863,21 @@ function setupConfigHandlers(cfg) {
       const id = clientInput ? clientInput.value.trim() : tr.dataset.client
       const urls = urlInput.value.trim()
       if (!id || !urls) return
-      routing[id] = urls.split(',').map((u) => u.trim()).filter(Boolean)
+      routing[id] = urls
+        .split(',')
+        .map((u) => u.trim())
+        .filter(Boolean)
     })
-    if (!routing.default) { showToast('default routing entry required', true); return }
+    if (!routing.default) {
+      showToast('default routing entry required', true)
+      return
+    }
     try {
       await api('PUT', '/api/config/routing', routing)
       showToast(t('toast.saved'))
-    } catch { showToast(t('toast.error'), true) }
+    } catch {
+      showToast(t('toast.error'), true)
+    }
   })
 }
 
@@ -784,13 +927,19 @@ function initSSE() {
           badge.dataset.clientId = clientId
           badge.addEventListener('click', async () => {
             const panel = card.querySelector('.faults-inline')
-            if (panel.classList.contains('open')) { panel.classList.remove('open'); panel.innerHTML = ''; return }
+            if (panel.classList.contains('open')) {
+              panel.classList.remove('open')
+              panel.innerHTML = ''
+              return
+            }
             panel.classList.add('open')
             panel.innerHTML = '<p style="padding:.4rem">…</p>'
             try {
               const data = await api('GET', `/api/faults?clientId=${encodeURIComponent(clientId)}&cleared=0&limit=10`)
               panel.innerHTML = renderInlineFaults(data.rows)
-            } catch { panel.innerHTML = `<p style="color:var(--danger);padding:.4rem">${t('toast.error')}</p>` }
+            } catch {
+              panel.innerHTML = `<p style="color:var(--danger);padding:.4rem">${t('toast.error')}</p>`
+            }
           })
           card.querySelector('.cp-actions').prepend(badge)
         }
@@ -809,7 +958,10 @@ function initSSE() {
       const badge = card.querySelector('.fault-badge')
       if (badge) badge.remove()
       const panel = card.querySelector('.faults-inline')
-      if (panel) { panel.classList.remove('open'); panel.innerHTML = '' }
+      if (panel) {
+        panel.classList.remove('open')
+        panel.innerHTML = ''
+      }
     }
     if (activeTab === 'events' && activeSubtab === 'faults') loadFaults()
   })
@@ -851,7 +1003,10 @@ function initSSE() {
           return
         }
         const html = connMeters
-          .map((m) => `<span class="meter-val">${esc(m.measurand.split('.').pop())}: ${esc(Number(m.value).toFixed(1))} ${esc(m.unit ?? '')}</span>`)
+          .map(
+            (m) =>
+              `<span class="meter-val">${esc(m.measurand.split('.').pop())}: ${esc(Number(m.value).toFixed(1))} ${esc(m.unit ?? '')}</span>`
+          )
           .join('')
         if (!metersDiv) {
           metersDiv = document.createElement('div')
@@ -885,7 +1040,11 @@ async function init() {
   applyI18n()
   setupNav()
 
-  try { await loadStatus() } catch (err) { console.error('loadStatus:', err) }
+  try {
+    await loadStatus()
+  } catch (err) {
+    console.error('loadStatus:', err)
+  }
 
   setupEventsFilters()
   setupFaultsFilters()
