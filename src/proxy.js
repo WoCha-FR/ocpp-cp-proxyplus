@@ -59,12 +59,16 @@ class OcppProxy {
     const heartbeatIntervalMs = this.config.heartbeatIntervalMs ?? 30000
     this.heartbeatInterval = setInterval(() => {
       this.server.clients.forEach((ws) => {
-        if (ws.isAlive === false) {
-          ws.terminate()
-          return
+        try {
+          if (ws.isAlive === false) {
+            ws.terminate()
+            return
+          }
+          ws.isAlive = false
+          ws.ping()
+        } catch (err) {
+          log.error(`Heartbeat error: ${err.message}`)
         }
-        ws.isAlive = false
-        ws.ping()
       })
     }, heartbeatIntervalMs)
     this.server.on('close', () => {
@@ -129,6 +133,12 @@ class OcppProxy {
     const upstreams = resolveUpstreams(this.config, clientId).map(
       ({ name, url }) => new UpstreamConnection(name, url, clientId, protocol, clientIp, forwardedHeaders)
     )
+
+    if (!upstreams.length) {
+      clog.error('No upstream configured — rejecting connection')
+      clientWs.close(1011, 'No upstream configured')
+      return
+    }
 
     const connectionInfo = { clientId, clientWs, upstreams, router, protocol, messageBuffer: [] }
     this.clientConnections.set(clientWs, connectionInfo)
@@ -307,7 +317,8 @@ class OcppProxy {
       }
     } else {
       clog.info(`Sending ${info.messageBuffer.length} buffered message(s) to ${upstream.name}`)
-      for (const msg of info.messageBuffer) {
+      const messages = [...info.messageBuffer]
+      for (const msg of messages) {
         upstream.send(msg)
       }
     }

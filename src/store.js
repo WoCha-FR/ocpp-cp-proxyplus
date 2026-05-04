@@ -1,6 +1,9 @@
+const { createLogger } = require('./logger')
+
 class Store {
   constructor(db) {
     this.db = db
+    this.log = createLogger('Store')
     this._stmtUpsertCP = db.prepare(`
       INSERT INTO chargepoints (client_id, vendor, model, serial, firmware, last_seen, first_seen)
       VALUES (@clientId, @vendor, @model, @serial, @firmware, @now, @now)
@@ -70,60 +73,92 @@ class Store {
   }
 
   upsertChargepoint(clientId, { vendor, model, serial, firmware } = {}) {
-    this._stmtUpsertCP.run({
-      clientId,
-      vendor: vendor ?? null,
-      model: model ?? null,
-      serial: serial ?? null,
-      firmware: firmware ?? null,
-      now: Date.now(),
-    })
+    try {
+      this._stmtUpsertCP.run({
+        clientId,
+        vendor: vendor ?? null,
+        model: model ?? null,
+        serial: serial ?? null,
+        firmware: firmware ?? null,
+        now: Date.now(),
+      })
+    } catch (err) {
+      this.log.error(`upsertChargepoint failed [${clientId}]: ${err.message}`)
+    }
   }
 
   touchChargepoint(clientId) {
-    this._stmtTouchCP.run({ clientId, now: Date.now() })
+    try {
+      this._stmtTouchCP.run({ clientId, now: Date.now() })
+    } catch (err) {
+      this.log.error(`touchChargepoint failed [${clientId}]: ${err.message}`)
+    }
   }
 
   updateChargepointName(clientId, name) {
-    this._stmtNameCP.run({ clientId, name })
+    try {
+      this._stmtNameCP.run({ clientId, name })
+    } catch (err) {
+      this.log.error(`updateChargepointName failed [${clientId}]: ${err.message}`)
+    }
   }
 
   upsertConnectorStatus(clientId, evseId, connectorId, status, statusRaw = null, errorCode = null) {
     const now = Date.now()
-    this._stmtUpsertStatus.run({ clientId, evseId, connectorId, status, statusRaw, errorCode, now })
-    this._stmtInsertHistory.run({ clientId, evseId, connectorId, status, statusRaw, errorCode, now })
+    try {
+      this._stmtUpsertStatus.run({ clientId, evseId, connectorId, status, statusRaw, errorCode, now })
+      this._stmtInsertHistory.run({ clientId, evseId, connectorId, status, statusRaw, errorCode, now })
+    } catch (err) {
+      this.log.error(`upsertConnectorStatus failed [${clientId} e${evseId}c${connectorId}]: ${err.message}`)
+    }
   }
 
   insertEvent(clientId, type, evseId = null, connectorId = null, payload = null) {
-    this._stmtInsertEvent.run({
-      now: Date.now(),
-      type,
-      clientId,
-      evseId,
-      connectorId,
-      payload: payload !== null ? JSON.stringify(payload) : null,
-    })
+    try {
+      this._stmtInsertEvent.run({
+        now: Date.now(),
+        type,
+        clientId,
+        evseId,
+        connectorId,
+        payload: payload !== null ? JSON.stringify(payload) : null,
+      })
+    } catch (err) {
+      this.log.error(`insertEvent failed [${clientId} ${type}]: ${err.message}`)
+    }
   }
 
   openTransaction(clientId, evseId, connectorId, ocppTxId, idTag, meterStart, startedAt, startSource = 'rfid') {
-    this._stmtOpenTx.run({
-      clientId,
-      evseId,
-      connectorId,
-      ocppTxId: String(ocppTxId),
-      idTag: idTag ?? null,
-      meterStart: meterStart ?? null,
-      startedAt,
-      startSource,
-    })
+    try {
+      this._stmtOpenTx.run({
+        clientId,
+        evseId,
+        connectorId,
+        ocppTxId: String(ocppTxId),
+        idTag: idTag ?? null,
+        meterStart: meterStart ?? null,
+        startedAt,
+        startSource,
+      })
+    } catch (err) {
+      this.log.error(`openTransaction failed [${clientId} tx${ocppTxId}]: ${err.message}`)
+    }
   }
 
   clearTransientMeterValues(clientId, evseId, connectorId) {
-    this._stmtClearTransientMV.run({ clientId, evseId, connectorId })
+    try {
+      this._stmtClearTransientMV.run({ clientId, evseId, connectorId })
+    } catch (err) {
+      this.log.error(`clearTransientMeterValues failed [${clientId}]: ${err.message}`)
+    }
   }
 
   closeTransaction(clientId, ocppTxId, meterStop, stoppedAt, stopReason = null) {
-    this._stmtCloseTx.run({ clientId, ocppTxId: String(ocppTxId), meterStop: meterStop ?? null, stoppedAt, stopReason })
+    try {
+      this._stmtCloseTx.run({ clientId, ocppTxId: String(ocppTxId), meterStop: meterStop ?? null, stoppedAt, stopReason })
+    } catch (err) {
+      this.log.error(`closeTransaction failed [${clientId} tx${ocppTxId}]: ${err.message}`)
+    }
   }
 
   // meterValueArray: OCPP meterValue array [{timestamp, sampledValue: [{measurand, value, unit}]}]
@@ -133,21 +168,29 @@ class Store {
       for (const sv of mv.sampledValue ?? []) {
         const numVal = parseFloat(sv.value)
         if (isNaN(numVal)) continue
-        this._stmtUpsertMV.run({
-          ts,
-          clientId,
-          evseId,
-          connectorId,
-          measurand: sv.measurand ?? 'Energy.Active.Import.Register',
-          value: numVal,
-          unit: sv.unitOfMeasure?.unit ?? sv.unit ?? null,
-        })
+        try {
+          this._stmtUpsertMV.run({
+            ts,
+            clientId,
+            evseId,
+            connectorId,
+            measurand: sv.measurand ?? 'Energy.Active.Import.Register',
+            value: numVal,
+            unit: sv.unitOfMeasure?.unit ?? sv.unit ?? null,
+          })
+        } catch (err) {
+          this.log.error(`upsertCurrentMeterValues failed [${clientId}]: ${err.message}`)
+        }
       }
     }
   }
 
   insertAuthorization(clientId, idTag, status, tokenType = 'ISO14443', groupIdToken = null, action = 'Authorize') {
-    this._stmtInsertAuth.run({ now: Date.now(), clientId, idTag, tokenType, groupIdToken, status, action })
+    try {
+      this._stmtInsertAuth.run({ now: Date.now(), clientId, idTag, tokenType, groupIdToken, status, action })
+    } catch (err) {
+      this.log.error(`insertAuthorization failed [${clientId} ${idTag}]: ${err.message}`)
+    }
   }
 
   insertFaultEvent(
@@ -156,26 +199,35 @@ class Store {
     connectorId,
     { component, variable, errorCode, severity, info, vendorId, vendorError, cleared, source }
   ) {
-    this._stmtInsertFault.run({
-      now: Date.now(),
-      clientId,
-      evseId,
-      connectorId,
-      component: component ?? null,
-      variable: variable ?? null,
-      errorCode: errorCode ?? null,
-      severity: severity ?? null,
-      info: info ?? null,
-      vendorId: vendorId ?? null,
-      vendorError: vendorError ?? null,
-      cleared: cleared ?? 0,
-      source,
-    })
+    try {
+      this._stmtInsertFault.run({
+        now: Date.now(),
+        clientId,
+        evseId,
+        connectorId,
+        component: component ?? null,
+        variable: variable ?? null,
+        errorCode: errorCode ?? null,
+        severity: severity ?? null,
+        info: info ?? null,
+        vendorId: vendorId ?? null,
+        vendorError: vendorError ?? null,
+        cleared: cleared ?? 0,
+        source,
+      })
+    } catch (err) {
+      this.log.error(`insertFaultEvent failed [${clientId}]: ${err.message}`)
+    }
   }
 
   clearFaultEvents(clientId, evseId, connectorId) {
-    const result = this._stmtClearFaults.run({ clientId, evseId, connectorId })
-    return result.changes
+    try {
+      const result = this._stmtClearFaults.run({ clientId, evseId, connectorId })
+      return result.changes
+    } catch (err) {
+      this.log.error(`clearFaultEvents failed [${clientId}]: ${err.message}`)
+      return 0
+    }
   }
 
   getFaultEvents({ page = 1, limit = 50, clientId = null, cleared = null } = {}) {

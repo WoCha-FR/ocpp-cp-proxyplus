@@ -18,6 +18,8 @@ function createHttpServer(config, db, proxy, notifier) {
 
   if (config.dashboard?.username) {
     app.use(basicAuth({ users: { [config.dashboard.username]: config.dashboard.password ?? '' }, challenge: true }))
+  } else {
+    log.warn('Dashboard authentication is disabled — all endpoints are public')
   }
 
   app.use(express.static(PUBLIC_DIR))

@@ -96,15 +96,12 @@ Copiez `config/config.sample.json` vers `config/config.json` et adaptez :
     "onStatusFault": true,
     "onTransaction": false,
     "email": {
-      "host": "smtp.exemple.fr",
-      "port": 587,
-      "secure": false,
-      "user": "utilisateur@exemple.fr",
-      "pass": "motdepasse",
+      "enabled": false,
       "from": "proxy@exemple.fr",
-      "to": "admin@exemple.fr"
+      "to": "admin@exemple.fr",
+      "transport": { "host": "smtp.exemple.fr", "port": 587, "auth": { "user": "", "pass": "" } }
     },
-    "pushover": { "token": "TOKEN_APP", "user": "CLE_USER" }
+    "pushover": { "enabled": false, "token": "TOKEN_APP", "user": "CLE_USER" }
   }
 }
 ```
@@ -131,7 +128,13 @@ ws://<hôte-proxy>:9000/<identifiant-borne>
 
 ## Notifications
 
-Les notifications sont envoyées par e-mail (SMTP) et/ou Pushover. Chaque type d'événement peut être activé ou désactivé indépendamment :
+Les notifications sont envoyées par e-mail et/ou Pushover. Chaque type d'événement peut être activé ou désactivé indépendamment.
+
+L'objet `email.transport` est transmis directement à [nodemailer](https://nodemailer.com/). Transports supportés :
+
+- **SMTP** — [nodemailer.com/smtp/](https://nodemailer.com/smtp/)
+- **Sendmail** — [nodemailer.com/transports/sendmail/](https://nodemailer.com/transports/sendmail/)
+- **Services préconfigurés** (Gmail, Outlook…) — [nodemailer.com/smtp/well-known/](https://nodemailer.com/smtp/well-known/)
 
 | Événement              | Description                                           |
 | ---------------------- | ----------------------------------------------------- |
@@ -182,7 +185,7 @@ Borne de recharge ──ws──► Proxy ──ws──► CSMS Primaire   (CAL
 | `ocpp-router.js`    | Routage des messages et remappage des identifiants                        |
 | `notify.js`         | Analyse des messages OCPP, détection d'événements, envoi de notifications |
 | `http-server.js`    | API REST, flux SSE, exécution de commandes à distance                     |
-| `store.js`          | Couche d'accès aux données SQLite                                         |
+| `store.js`          | Couche d'accès aux données SQLite (`config/cpproxy.db`)                   |
 | `command-sender.js` | Envoi de messages OCPP CALL vers les bornes                               |
 
 ## Développement
@@ -206,4 +209,4 @@ Le tableau de bord expose un endpoint `/healthz` qui renvoie HTTP 200 lorsque le
 
 ## Licence
 
-ISC
+GPL-3.0-only

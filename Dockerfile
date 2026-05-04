@@ -33,13 +33,13 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 # Conserver une copie du contenu initial pour ensemencer les volumes montés vides au démarrage.
 RUN mkdir -p /opt/defaults/config \
   && cp /app/config/config.sample.json /opt/defaults/config/config.sample.json \
-  && mkdir -p /app/logs /app/locales-custom \
+  && mkdir -p /app/locales-custom \
   && chown -R ocpp:ocpp /opt/defaults /app/locales-custom \
   && chown ocpp:ocpp /usr/local/bin/docker-entrypoint.sh \
   && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
   && chmod +x /usr/local/bin/docker-entrypoint.sh
 
-VOLUME ["/app/config", "/app/locales-custom"]
+VOLUME ["/app/config"]
 
 EXPOSE 9000 3000
 

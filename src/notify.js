@@ -553,16 +553,22 @@ class Notify {
 
   _send(title, message) {
     if (this.mailer) {
-      this.mailer.send(title, message).then((res) => {
-        if (res.error) this.log.error(`Email notification failed: ${res.error}`)
-        else this.log.debug('Email notification sent')
-      })
+      this.mailer
+        .send(title, message)
+        .then((res) => {
+          if (res.error) this.log.error(`Email notification failed: ${res.error}`)
+          else this.log.debug('Email notification sent')
+        })
+        .catch((err) => this.log.error(`Email notification error: ${err.message}`))
     }
     if (this.pushover) {
-      this.pushover.send(title, message).then((res) => {
-        if (res.error) this.log.error(`Pushover notification failed: ${res.error}`)
-        else this.log.debug('Pushover notification sent')
-      })
+      this.pushover
+        .send(title, message)
+        .then((res) => {
+          if (res.error) this.log.error(`Pushover notification failed: ${res.error}`)
+          else this.log.debug('Pushover notification sent')
+        })
+        .catch((err) => this.log.error(`Pushover notification error: ${err.message}`))
     }
   }
 }

@@ -96,15 +96,12 @@ Copy `config/config.sample.json` to `config/config.json` and edit:
     "onStatusFault": true,
     "onTransaction": false,
     "email": {
-      "host": "smtp.example.com",
-      "port": 587,
-      "secure": false,
-      "user": "user@example.com",
-      "pass": "password",
+      "enabled": false,
       "from": "proxy@example.com",
-      "to": "admin@example.com"
+      "to": "admin@example.com",
+      "transport": { "host": "smtp.example.com", "port": 587, "auth": { "user": "", "pass": "" } }
     },
-    "pushover": { "token": "APP_TOKEN", "user": "USER_KEY" }
+    "pushover": { "enabled": false, "token": "APP_TOKEN", "user": "USER_KEY" }
   }
 }
 ```
@@ -131,7 +128,13 @@ ws://<proxy-host>:9000/<station-id>
 
 ## Notifications
 
-Notifications are sent via email (SMTP) and/or Pushover. Each event type can be enabled or disabled individually:
+Notifications are sent via email and/or Pushover. Each event type can be enabled or disabled individually.
+
+The `email.transport` object is passed directly to [nodemailer](https://nodemailer.com/). Supported transports:
+
+- **SMTP** — [nodemailer.com/smtp/](https://nodemailer.com/smtp/)
+- **Sendmail** — [nodemailer.com/transports/sendmail/](https://nodemailer.com/transports/sendmail/)
+- **Well-known services** (Gmail, Outlook…) — [nodemailer.com/smtp/well-known/](https://nodemailer.com/smtp/well-known/)
 
 | Event                  | Description                                   |
 | ---------------------- | --------------------------------------------- |
@@ -182,7 +185,7 @@ Charge Point ──ws──► Proxy ──ws──► Primary CSMS   (CALLs bro
 | `ocpp-router.js`    | Message routing and ID remapping                             |
 | `notify.js`         | OCPP message parsing, event detection, notification dispatch |
 | `http-server.js`    | REST API, SSE stream, remote command execution               |
-| `store.js`          | SQLite data access layer                                     |
+| `store.js`          | SQLite data access layer (`config/cpproxy.db`)               |
 | `command-sender.js` | Sends OCPP CALL messages to charge points                    |
 
 ## Development
@@ -206,4 +209,4 @@ The dashboard exposes a `/healthz` endpoint that returns HTTP 200 when the servi
 
 ## License
 
-ISC
+GPL-3.0-only

@@ -112,6 +112,7 @@ class UpstreamConnection {
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null
+      if (this.closed) return
       this.connect()
     }, delay)
   }
