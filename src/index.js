@@ -4,6 +4,7 @@
 
 const OcppProxy = require('./proxy')
 const Notify = require('./notify')
+const Store = require('./store')
 const configModule = require('./config')
 const dbModule = require('./database')
 const { createHttpServer } = require('./http-server')
@@ -41,6 +42,12 @@ try {
 } catch (err) {
   log.error(`Failed to start proxy: ${err.message}`)
   process.exit(1)
+}
+
+// Seed chargepoints declared in routing config so they appear in the dashboard before first connection
+const store = new Store(db)
+for (const clientId of Object.keys(config.routing ?? {})) {
+  if (clientId !== 'default') store.registerChargepoint(clientId)
 }
 
 createHttpServer(config, db, proxy, notifier)

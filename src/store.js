@@ -70,6 +70,19 @@ class Store {
       UPDATE fault_events SET cleared = 1
       WHERE client_id = @clientId AND evse_id = @evseId AND connector_id = @connectorId AND cleared = 0
     `)
+    this._stmtRegisterCP = db.prepare(`
+      INSERT INTO chargepoints (client_id, vendor, model, serial, firmware, last_seen, first_seen)
+      VALUES (@clientId, NULL, NULL, NULL, NULL, @now, @now)
+      ON CONFLICT(client_id) DO UPDATE SET last_seen = excluded.last_seen
+    `)
+  }
+
+  registerChargepoint(clientId) {
+    try {
+      this._stmtRegisterCP.run({ clientId, now: Date.now() })
+    } catch (err) {
+      this.log.error(`registerChargepoint failed [${clientId}]: ${err.message}`)
+    }
   }
 
   upsertChargepoint(clientId, { vendor, model, serial, firmware } = {}) {
@@ -217,6 +230,26 @@ class Store {
       })
     } catch (err) {
       this.log.error(`insertFaultEvent failed [${clientId}]: ${err.message}`)
+    }
+  }
+
+  deleteChargepoint(clientId) {
+    const del = this.db.transaction(() => {
+      this.db.prepare('DELETE FROM current_meter_values WHERE client_id = ?').run(clientId)
+      this.db.prepare('DELETE FROM connector_status WHERE client_id = ?').run(clientId)
+      this.db.prepare('DELETE FROM status_history WHERE client_id = ?').run(clientId)
+      this.db.prepare('DELETE FROM events WHERE client_id = ?').run(clientId)
+      this.db.prepare('DELETE FROM transactions WHERE client_id = ?').run(clientId)
+      this.db.prepare('DELETE FROM authorizations WHERE client_id = ?').run(clientId)
+      this.db.prepare('DELETE FROM fault_events WHERE client_id = ?').run(clientId)
+      return this.db.prepare('DELETE FROM chargepoints WHERE client_id = ?').run(clientId)
+    })
+    try {
+      const result = del()
+      return result.changes > 0
+    } catch (err) {
+      this.log.error(`deleteChargepoint failed [${clientId}]: ${err.message}`)
+      return false
     }
   }
 

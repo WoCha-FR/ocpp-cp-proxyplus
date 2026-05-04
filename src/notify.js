@@ -96,6 +96,7 @@ class Notify {
   // ─── Public API called by proxy.js ───────────────────────────────────────
 
   connectedToProxy(clientId) {
+    this.store?.registerChargepoint(clientId)
     this.store?.insertEvent(clientId, 'connected_proxy')
     eventBus.emit('client-connected', { clientId })
     eventBus.emit('ocpp-event', { type: 'connected_proxy', clientId })
@@ -298,10 +299,19 @@ class Notify {
   callFromUpstream(clientId, message) {
     if (message.type !== 2) return
     const [, , action, params = {}] = message.parsed
-    if (action !== 'RemoteStartTransaction') return
-    const connectorId = params.connectorId ?? 0
-    const key = `${clientId}:${connectorId}`
-    this.pendingRemoteStart.set(key, { idTag: params.idTag ?? null, ts: Date.now() })
+
+    switch (action) {
+      case 'GetConfiguration':
+      case 'GetVariables':
+        this.store?.insertEvent(clientId, 'get_configuration', null, null, params)
+        break
+      case 'RemoteStartTransaction': {
+        const connectorId = params.connectorId ?? 0
+        const key = `${clientId}:${connectorId}`
+        this.pendingRemoteStart.set(key, { idTag: params.idTag ?? null, ts: Date.now() })
+        break
+      }
+    }
   }
 
   // ─── Private handlers ─────────────────────────────────────────────────────
@@ -419,6 +429,7 @@ class Notify {
     const connectorId = params.connectorId ?? 0
     if (this.store && params.meterValue) {
       this.store.upsertCurrentMeterValues(clientId, evseId, connectorId, params.meterValue)
+      this.store.insertEvent(clientId, 'meter_values', evseId, connectorId, params)
       eventBus.emit('meter-values-update', { clientId })
       eventBus.emit('ocpp-event', { type: 'meter_values', clientId })
     }

@@ -43,6 +43,19 @@ function createHttpServer(config, db, proxy, notifier) {
     res.json({ ok: true })
   })
 
+  app.delete('/api/chargepoints/:clientId', (req, res) => {
+    const { clientId } = req.params
+    if (proxy?.getConnectedClientIds().includes(clientId)) {
+      return res.status(409).json({ error: 'chargepoint_connected' })
+    }
+    if (clientId in (config.routing ?? {})) {
+      return res.status(409).json({ error: 'chargepoint_in_config' })
+    }
+    const deleted = store.deleteChargepoint(clientId)
+    if (!deleted) return res.status(404).json({ error: 'not_found' })
+    res.json({ ok: true })
+  })
+
   // ─── Events / Faults / Transactions ──────────────────────────────────────
 
   app.get('/api/events', (req, res) => {
@@ -169,6 +182,9 @@ function createHttpServer(config, db, proxy, notifier) {
     try {
       const result = await proxy.commandSender.send(ws, ocppAction, ocppParams)
       const payload = result[2] ?? {}
+      if (action === 'get-config') {
+        store.insertEvent(clientId, 'get_configuration', null, null, { request: ocppParams, response: payload })
+      }
       res.json({ status: payload.status ?? 'Accepted', result: payload })
     } catch (err) {
       if (err.code === 'TIMEOUT') return res.status(408).json({ error: 'timeout' })

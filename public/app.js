@@ -154,6 +154,7 @@ let connectorMap = {} // clientId → connector status rows[]
 let meterMap = {} // clientId → meter value rows[]
 let activeFaultCount = {} // clientId → count
 let onlineClients = new Set() // clientIds currently connected to proxy
+let configuredClientIds = new Set() // clientIds present in config.routing
 let upstreamStatusMap = {} // clientId → { pri: bool, sec: bool|null }
 
 const STATUS_COLOR = {
@@ -169,15 +170,17 @@ const STATUS_COLOR = {
 }
 
 async function loadStatus() {
-  const [statusRows, cpRows, meterRows, faultData, connectedIds] = await Promise.all([
+  const [statusRows, cpRows, meterRows, faultData, connectedIds, cfg] = await Promise.all([
     api('GET', '/api/status'),
     api('GET', '/api/chargepoints'),
     api('GET', '/api/meters'),
     api('GET', '/api/faults?cleared=0&limit=1000'),
     api('GET', '/api/connected'),
+    api('GET', '/api/config'),
   ])
 
   onlineClients = new Set(connectedIds)
+  configuredClientIds = new Set(Object.keys(cfg.routing ?? {}).filter((k) => k !== 'default'))
 
   cpInfo = {}
   for (const cp of cpRows) cpInfo[cp.client_id] = cp
@@ -263,6 +266,11 @@ function renderStatusGrid() {
     })
   })
 
+  // Delete chargepoint
+  grid.querySelectorAll('.cp-delete-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteChargepoint(btn.dataset.clientId))
+  })
+
   setupCommandPanels(grid)
 }
 
@@ -286,6 +294,11 @@ function renderCPCard(clientId) {
       ? `<button class="fault-badge" data-client-id="${esc(clientId)}" title="${esc(t('faults.active_faults', { count: faultCount }))}">⚠ ${faultCount}</button>`
       : ''
 
+  const deleteBtn =
+    !isOnline && !configuredClientIds.has(clientId)
+      ? `<button class="btn-danger btn-sm cp-delete-btn" data-client-id="${esc(clientId)}">${esc(t('action.delete'))}</button>`
+      : ''
+
   const meta = [
     cp.vendor ? `${esc(t('chargepoint.vendor'))}: ${esc(cp.vendor)}` : '',
     cp.model ? `${esc(t('chargepoint.model'))}: ${esc(cp.model)}` : '',
@@ -294,10 +307,16 @@ function renderCPCard(clientId) {
     .filter(Boolean)
     .join(' · ')
 
+  const routing = configData?.routing ?? {}
+  const routeUrls = routing[clientId] ?? routing['default'] ?? []
+  const routeTitle = (Array.isArray(routeUrls) ? routeUrls : [routeUrls]).join(' · ')
+  const isCustomRoute = configuredClientIds.has(clientId)
+  const routeBadge = `<span class="cp-route-badge ${isCustomRoute ? 'route-custom' : 'route-default'}" title="${esc(routeTitle)}">${esc(isCustomRoute ? t('chargepoint.route_custom') : t('chargepoint.route_default'))}</span>`
+
   const badges = connectors.map((c) => renderConnectorBadge(c, meters)).join('')
 
   return `
-    <div class="cp-card" data-client-id="${esc(clientId)}">
+    <div class="cp-card${isOnline ? '' : ' offline'}" data-client-id="${esc(clientId)}">
       <div class="cp-header">
         <div class="cp-title">
           <form class="cp-name-form" data-client-id="${esc(clientId)}">
@@ -310,14 +329,30 @@ function renderCPCard(clientId) {
           ${onlineBadge}
           ${upstreamBadges}
           ${faultBadge}
-          <button class="commands-toggle btn-sm">${esc(t('commands.title'))}</button>
+          ${deleteBtn}
+          <button class="commands-toggle btn-sm"${isOnline ? '' : ' disabled'}>${esc(t('commands.title'))}</button>
         </div>
       </div>
-      ${meta ? `<div class="cp-meta">${meta}</div>` : ''}
+      <div class="cp-meta">${meta ? `<span>${meta}</span>` : ''}${routeBadge}</div>
       <div class="connectors-row">${badges || '<span class="empty-state">—</span>'}</div>
       <div class="faults-inline"></div>
       <div class="commands-panel">${renderCommandPanel(clientId)}</div>
     </div>`
+}
+
+async function deleteChargepoint(clientId) {
+  if (!confirm(t('chargepoint.delete_confirm', { id: clientId }))) return
+  try {
+    await api('DELETE', `/api/chargepoints/${encodeURIComponent(clientId)}`)
+    delete cpInfo[clientId]
+    delete connectorMap[clientId]
+    delete meterMap[clientId]
+    delete activeFaultCount[clientId]
+    renderStatusGrid()
+    showToast(t('toast.deleted'))
+  } catch {
+    showToast(t('toast.error'), true)
+  }
 }
 
 function renderConnectorBadge(c, meters) {
@@ -652,6 +687,7 @@ let configData = null
 
 async function loadConfig() {
   configData = await api('GET', '/api/config')
+  configuredClientIds = new Set(Object.keys(configData.routing ?? {}).filter((k) => k !== 'default'))
   renderConfig(configData)
 }
 
@@ -888,6 +924,9 @@ function setupConfigHandlers(cfg) {
     }
     try {
       await api('PUT', '/api/config/routing', routing)
+      configData.routing = routing
+      configuredClientIds = new Set(Object.keys(routing).filter((k) => k !== 'default'))
+      renderStatusGrid()
       showToast(t('toast.saved'))
     } catch {
       showToast(t('toast.error'), true)
@@ -987,6 +1026,13 @@ function initSSE() {
     if (badge) {
       badge.className = 'cp-online-badge online'
       badge.textContent = t('chargepoint.online')
+      const card = badge.closest('.cp-card')
+      if (card) {
+        card.classList.remove('offline')
+        const cmdBtn = card.querySelector('.commands-toggle')
+        if (cmdBtn) cmdBtn.disabled = false
+        card.querySelector('.cp-delete-btn')?.remove()
+      }
     } else {
       loadStatus()
     }
@@ -999,12 +1045,27 @@ function initSSE() {
     if (badge) {
       badge.className = 'cp-online-badge offline'
       badge.textContent = t('chargepoint.offline')
+      if (!configuredClientIds.has(clientId)) {
+        const card = badge.closest('.cp-card')
+        const actionsEl = card?.querySelector('.cp-actions')
+        if (actionsEl && !actionsEl.querySelector('.cp-delete-btn')) {
+          const btn = document.createElement('button')
+          btn.className = 'btn-danger btn-sm cp-delete-btn'
+          btn.dataset.clientId = clientId
+          btn.textContent = t('action.delete')
+          btn.addEventListener('click', () => deleteChargepoint(clientId))
+          actionsEl.querySelector('.commands-toggle').before(btn)
+        }
+      }
     }
     const prevStatus = upstreamStatusMap[clientId]
     delete upstreamStatusMap[clientId]
-    if (prevStatus) {
-      const card = document.querySelector(`.cp-card[data-client-id="${clientId}"]`)
-      if (card) {
+    const card = document.querySelector(`.cp-card[data-client-id="${clientId}"]`)
+    if (card) {
+      card.classList.add('offline')
+      const cmdBtn = card.querySelector('.commands-toggle')
+      if (cmdBtn) cmdBtn.disabled = true
+      if (prevStatus) {
         const pri = card.querySelector('.upstream-badge[data-upstream-name="PRI"]')
         if (pri) pri.className = 'upstream-badge disconnected'
         const sec = card.querySelector('.upstream-badge[data-upstream-name="SEC"]')

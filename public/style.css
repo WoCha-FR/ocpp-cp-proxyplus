@@ -328,11 +328,33 @@ td pre {
 }
 
 .cp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
   padding: 0.4rem 1rem;
   font-size: 0.78rem;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
   background: #fafbfd;
+}
+
+/* ─── Route Badge ─────────────────────────────────────────────────────────── */
+.cp-route-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  white-space: nowrap;
+  cursor: default;
+}
+.cp-route-badge.route-default {
+  background: #e9ecef;
+  color: #6c757d;
+}
+.cp-route-badge.route-custom {
+  background: #cce5ff;
+  color: #004085;
 }
 
 .connectors-row {
@@ -398,6 +420,16 @@ td pre {
 }
 .status-unknown {
   background: var(--unknown);
+}
+
+/* ─── Offline: connector badges grisés ──────────────────────────────────── */
+.cp-card.offline .connector-badge {
+  background: var(--unknown) !important;
+  opacity: 0.6;
+}
+.commands-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ─── Online/Offline Badge ────────────────────────────────────────────────── */

@@ -61,6 +61,7 @@
   "toast": {
     "saved": "Saved successfully.",
     "error": "An error occurred.",
+    "deleted": "Charge point deleted.",
     "restart_required": "Change saved — restart the proxy to apply it."
   },
 
@@ -76,7 +77,10 @@
     "offline": "Offline",
     "upstream_pri": "Primary upstream",
     "upstream_sec": "Secondary upstream",
-    "upstream_unconfigured": "Not configured"
+    "upstream_unconfigured": "Not configured",
+    "route_default": "Default route",
+    "route_custom": "Custom route",
+    "delete_confirm": "Delete charge point \"{{id}}\" and all its data?"
   },
 
   "events": {

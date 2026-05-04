@@ -61,6 +61,7 @@
   "toast": {
     "saved": "Enregistré avec succès.",
     "error": "Une erreur est survenue.",
+    "deleted": "Borne supprimée.",
     "restart_required": "Modification enregistrée — redémarrez le proxy pour l'appliquer."
   },
 
@@ -76,7 +77,10 @@
     "offline": "Hors ligne",
     "upstream_pri": "Upstream primaire",
     "upstream_sec": "Upstream secondaire",
-    "upstream_unconfigured": "Non configuré"
+    "upstream_unconfigured": "Non configuré",
+    "route_default": "Route défaut",
+    "route_custom": "Route spécifique",
+    "delete_confirm": "Supprimer la borne « {{id}} » et toutes ses données ?"
   },
 
   "events": {
