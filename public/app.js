@@ -154,6 +154,7 @@ let connectorMap = {} // clientId → connector status rows[]
 let meterMap = {} // clientId → meter value rows[]
 let activeFaultCount = {} // clientId → count
 let onlineClients = new Set() // clientIds currently connected to proxy
+let upstreamStatusMap = {} // clientId → { pri: bool, sec: bool|null }
 
 const STATUS_COLOR = {
   Available: 'status-available',
@@ -197,6 +198,12 @@ async function loadStatus() {
   }
 
   renderStatusGrid()
+}
+
+async function loadUpstreamStatus() {
+  try {
+    upstreamStatusMap = await api('GET', '/api/upstream-status')
+  } catch {}
 }
 
 function renderStatusGrid() {
@@ -268,6 +275,12 @@ function renderCPCard(clientId) {
   const isOnline = onlineClients.has(clientId)
   const onlineBadge = `<span class="cp-online-badge ${isOnline ? 'online' : 'offline'}" data-client-id="${esc(clientId)}">${esc(isOnline ? t('chargepoint.online') : t('chargepoint.offline'))}</span>`
 
+  const upSt = upstreamStatusMap[clientId]
+  const upstreamBadges = upSt !== undefined
+    ? `<span class="upstream-badge ${upSt.pri ? 'connected' : 'disconnected'}" data-upstream-name="PRI" data-upstream-configured="true" title="${esc(t('chargepoint.upstream_pri'))}">PRI</span>` +
+      `<span class="upstream-badge ${upSt.sec === null ? 'unconfigured' : upSt.sec ? 'connected' : 'disconnected'}" data-upstream-name="SEC" data-upstream-configured="${upSt.sec !== null}" title="${esc(upSt.sec === null ? t('chargepoint.upstream_unconfigured') : t('chargepoint.upstream_sec'))}">SEC</span>`
+    : ''
+
   const faultBadge =
     faultCount > 0
       ? `<button class="fault-badge" data-client-id="${esc(clientId)}" title="${esc(t('faults.active_faults', { count: faultCount }))}">⚠ ${faultCount}</button>`
@@ -295,6 +308,7 @@ function renderCPCard(clientId) {
         </div>
         <div class="cp-actions">
           ${onlineBadge}
+          ${upstreamBadges}
           ${faultBadge}
           <button class="commands-toggle btn-sm">${esc(t('commands.title'))}</button>
         </div>
@@ -986,6 +1000,44 @@ function initSSE() {
       badge.className = 'cp-online-badge offline'
       badge.textContent = t('chargepoint.offline')
     }
+    const prevStatus = upstreamStatusMap[clientId]
+    delete upstreamStatusMap[clientId]
+    if (prevStatus) {
+      const card = document.querySelector(`.cp-card[data-client-id="${clientId}"]`)
+      if (card) {
+        const pri = card.querySelector('.upstream-badge[data-upstream-name="PRI"]')
+        if (pri) pri.className = 'upstream-badge disconnected'
+        const sec = card.querySelector('.upstream-badge[data-upstream-name="SEC"]')
+        if (sec && sec.dataset.upstreamConfigured === 'true') sec.className = 'upstream-badge disconnected'
+      }
+    }
+  })
+
+  es.addEventListener('upstream-update', (e) => {
+    const { clientId, name, connected } = JSON.parse(e.data)
+    if (!upstreamStatusMap[clientId]) upstreamStatusMap[clientId] = { pri: false, sec: null }
+    if (name === 'PRI') upstreamStatusMap[clientId].pri = connected
+    else if (name === 'SEC') upstreamStatusMap[clientId].sec = connected
+    const card = document.querySelector(`.cp-card[data-client-id="${clientId}"]`)
+    if (card) {
+      const badge = card.querySelector(`.upstream-badge[data-upstream-name="${name}"]`)
+      if (badge) {
+        badge.className = `upstream-badge ${connected ? 'connected' : 'disconnected'}`
+      } else {
+        // Badge doesn't exist yet (card rendered before upstream status was known)
+        const actionsEl = card.querySelector('.cp-actions')
+        if (actionsEl) {
+          const newBadge = document.createElement('span')
+          newBadge.className = `upstream-badge ${connected ? 'connected' : 'disconnected'}`
+          newBadge.dataset.upstreamName = name
+          newBadge.dataset.upstreamConfigured = 'true'
+          newBadge.textContent = name
+          const onlineBadge = actionsEl.querySelector('.cp-online-badge')
+          if (onlineBadge) onlineBadge.after(newBadge)
+          else actionsEl.prepend(newBadge)
+        }
+      }
+    }
   })
 
   es.addEventListener('meter-values-update', async (e) => {
@@ -1041,6 +1093,7 @@ async function init() {
   setupNav()
 
   try {
+    await loadUpstreamStatus()
     await loadStatus()
   } catch (err) {
     console.error('loadStatus:', err)

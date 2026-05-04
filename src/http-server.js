@@ -16,6 +16,8 @@ function createHttpServer(config, db, proxy, notifier) {
 
   app.use(express.json())
 
+  app.get('/healthz', (_req, res) => res.status(200).json({ status: 'ok' }))
+
   if (config.dashboard?.username) {
     app.use(basicAuth({ users: { [config.dashboard.username]: config.dashboard.password ?? '' }, challenge: true }))
   } else {
@@ -29,6 +31,8 @@ function createHttpServer(config, db, proxy, notifier) {
   app.get('/api/status', (_req, res) => res.json(store.getStatus()))
 
   app.get('/api/connected', (_req, res) => res.json(proxy?.getConnectedClientIds() ?? []))
+
+  app.get('/api/upstream-status', (_req, res) => res.json(proxy?.getUpstreamStatus() ?? {}))
 
   app.get('/api/meters', (req, res) => res.json(store.getCurrentMeterValues(req.query.clientId || null)))
 
@@ -192,6 +196,7 @@ function createHttpServer(config, db, proxy, notifier) {
       'fault-cleared': (d) => send('fault-cleared', d),
       'client-connected': (d) => send('client-connected', d),
       'client-disconnected': (d) => send('client-disconnected', d),
+      'upstream-update': (d) => send('upstream-update', d),
     }
 
     for (const [event, handler] of Object.entries(handlers)) eventBus.on(event, handler)
@@ -201,12 +206,6 @@ function createHttpServer(config, db, proxy, notifier) {
       clearInterval(heartbeat)
       for (const [event, handler] of Object.entries(handlers)) eventBus.off(event, handler)
     })
-  })
-
-  // ─── HEALTHCHECK ─────────────────────────────────────────────────────────
-
-  app.get('/healthz', (req, res) => {
-    res.status(200).json({ status: 'ok' })
   })
 
   const port = config.dashboard?.port ?? 3000

@@ -73,7 +73,10 @@
     "firmware": "Firmware",
     "name_placeholder": "Nom personnalisé",
     "online": "En ligne",
-    "offline": "Hors ligne"
+    "offline": "Hors ligne",
+    "upstream_pri": "Upstream primaire",
+    "upstream_sec": "Upstream secondaire",
+    "upstream_unconfigured": "Non configuré"
   },
 
   "events": {

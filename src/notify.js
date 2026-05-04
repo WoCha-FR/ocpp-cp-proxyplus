@@ -96,13 +96,17 @@ class Notify {
   // ─── Public API called by proxy.js ───────────────────────────────────────
 
   connectedToProxy(clientId) {
+    this.store?.insertEvent(clientId, 'connected_proxy')
     eventBus.emit('client-connected', { clientId })
+    eventBus.emit('ocpp-event', { type: 'connected_proxy', clientId })
     if (!this.config.onConnect) return
     this._send(trad('notification.connected.title', { clientId }), trad('notification.connected.body', { clientId }))
   }
 
   disconnectedFromProxy(clientId) {
+    this.store?.insertEvent(clientId, 'disconnected_proxy')
     eventBus.emit('client-disconnected', { clientId })
+    eventBus.emit('ocpp-event', { type: 'disconnected_proxy', clientId })
     if (!this.config.onDisconnect) return
     this._send(trad('notification.disconnected.title', { clientId }), trad('notification.disconnected.body', { clientId }))
   }

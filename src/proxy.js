@@ -8,6 +8,7 @@ const OcppRouter = require('./ocpp-router')
 const UpstreamConnection = require('./upstream')
 const { createLogger } = require('./logger')
 const CommandSender = require('./command-sender')
+const eventBus = require('./event-bus')
 
 const log = createLogger('Proxy')
 
@@ -153,11 +154,15 @@ class OcppProxy {
         this.sendBufferToUpstream(clientWs, upstream)
         this.flushMessageBufferIfAllConnected(clientWs)
         this.notifier?.connectedToUpstream(clientId, serverName)
+        eventBus.emit('upstream-update', { clientId, name: serverName, connected: true })
       })
 
       upstream.onDisconnected((serverName) => {
         this.checkUpstreamsStatus(clientWs)
-        this.notifier?.disconnectedFromUpstream(clientId, serverName)
+        if (upstream.wasEverConnected) {
+          this.notifier?.disconnectedFromUpstream(clientId, serverName)
+        }
+        eventBus.emit('upstream-update', { clientId, name: serverName, connected: false })
       })
 
       upstream.onGaveUp(() => {
@@ -365,6 +370,19 @@ class OcppProxy {
   }
 
   // ─── Cleanup ──────────────────────────────────────────────────────────────
+
+  getUpstreamStatus() {
+    const result = {}
+    for (const info of this.clientConnections.values()) {
+      const pri = info.upstreams[0]
+      const sec = info.upstreams[1] ?? null
+      result[info.clientId] = {
+        pri: pri?.isConnected ?? false,
+        sec: sec ? sec.isConnected : null,
+      }
+    }
+    return result
+  }
 
   getClientConnection(clientId) {
     for (const [ws, info] of this.clientConnections) {

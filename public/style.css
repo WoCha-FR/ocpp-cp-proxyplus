@@ -417,6 +417,28 @@ td pre {
   color: var(--text-muted);
 }
 
+/* ─── Upstream Badges ────────────────────────────────────────────────────── */
+.upstream-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 10px;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.upstream-badge.connected {
+  background: #d4edda;
+  color: #155724;
+}
+.upstream-badge.disconnected {
+  background: #f8d7da;
+  color: #721c24;
+}
+.upstream-badge.unconfigured {
+  background: #e9ecef;
+  color: #6c757d;
+}
+
 /* ─── Fault Badge ─────────────────────────────────────────────────────────── */
 .fault-badge {
   background: var(--warning);

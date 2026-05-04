@@ -37,7 +37,8 @@ class UpstreamConnection {
   // ─── URL ────────────────────────────────────────────────────────────────────
 
   getUrl() {
-    return `${this.baseUrl}${this.clientId}`
+    const base = this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`
+    return `${base}${this.clientId}`
   }
 
   // ─── Connection ─────────────────────────────────────────────────────────────
