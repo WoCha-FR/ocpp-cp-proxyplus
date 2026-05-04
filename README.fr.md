@@ -71,6 +71,20 @@ L'image Docker expose :
 - **9000** — Proxy WebSocket OCPP
 - **3000** — Tableau de bord HTTP
 
+### Docker Compose
+
+Un fichier `docker-compose.yml` est fourni. La configuration se fait via un fichier `.env` — inutile d'éditer `config.json` pour les réglages de déploiement courants.
+
+```bash
+cp .env.example .env
+# Éditez .env : renseignez au minimum OCPP_UPSTREAM_PRIMARY et DASHBOARD_PASSWORD
+docker compose up -d
+```
+
+Le répertoire `config/` est monté en volume. Au premier démarrage, l'entrypoint y copie `config.sample.json` s'il est vide. Renseigner `OCPP_UPSTREAM_PRIMARY` dans `.env` évite d'éditer ce fichier.
+
+Voir [Surcharges par variables d'environnement](#surcharges-par-variables-denvironnement) pour la liste complète des variables supportées.
+
 ## Configuration
 
 Copiez `config/config.sample.json` vers `config/config.json` et adaptez :
@@ -119,6 +133,30 @@ Copiez `config/config.sample.json` vers `config/config.json` et adaptez :
 | `dashboard.port`      | Port du tableau de bord HTTP (défaut : 3000)                       |
 | `routing.default`     | Obligatoire — un ou deux URLs CSMS amont                           |
 | `routing.<stationId>` | Optionnel — routage spécifique par identifiant de borne            |
+
+### Surcharges par variables d'environnement
+
+Les valeurs liées au déploiement et les secrets peuvent être définis via des variables d'environnement plutôt qu'en éditant `config.json`. Chaque variable écrase une clé de configuration précise après le chargement du fichier.
+
+| Variable                  | Chemin config                         | Défaut   | Description                               |
+| ------------------------- | ------------------------------------- | -------- | ----------------------------------------- |
+| `OCPP_UPSTREAM_PRIMARY`   | `routing.default[0]`                  | —        | URL du CSMS primaire (obligatoire)        |
+| `OCPP_UPSTREAM_SECONDARY` | `routing.default[1]`                  | —        | URL du CSMS miroir (optionnel)            |
+| `PROXY_PORT`              | `proxy.port`                          | `9000`   | Port du proxy WebSocket                  |
+| `DASHBOARD_PORT`          | `dashboard.port`                      | `3000`   | Port du tableau de bord                  |
+| `DASHBOARD_USERNAME`      | `dashboard.username`                  | `admin`  | Identifiant du tableau de bord           |
+| `DASHBOARD_PASSWORD`      | `dashboard.password`                  | —        | Mot de passe du tableau de bord          |
+| `LOG_LEVEL`               | `logLevel`                            | `info`   | Verbosité des logs                       |
+| `NOTIFY_EMAIL_ENABLED`    | `notify.email.enabled`                | `false`  | Activer les notifications email          |
+| `SMTP_USER`               | `notify.email.transport.auth.user`    | —        | Identifiant SMTP                         |
+| `SMTP_PASS`               | `notify.email.transport.auth.pass`    | —        | Mot de passe SMTP                        |
+| `SMTP_FROM`               | `notify.email.from`                   | —        | Adresse expéditeur                       |
+| `SMTP_TO`                 | `notify.email.to`                     | —        | Adresse destinataire                     |
+| `NOTIFY_PUSHOVER_ENABLED` | `notify.pushover.enabled`             | `false`  | Activer les notifications Pushover       |
+| `NOTIFY_PUSHOVER_TOKEN`   | `notify.pushover.token`               | —        | Token d'application Pushover            |
+| `NOTIFY_PUSHOVER_USER`    | `notify.pushover.user`                | —        | Clé utilisateur Pushover                |
+
+> **Note :** Les paramètres de connexion SMTP (`host`, `port`, `tls`, etc.) font partie de l'objet `email.transport` transmis en entier à nodemailer et doivent être configurés dans `config.json`. Seules les credentials sont surchargeables via variables d'environnement.
 
 Les bornes se connectent au proxy avec l'URL :
 

@@ -14,7 +14,28 @@ let config = null
 // Overrides de configuration via variables d'environnement.
 // Seules les valeurs liées au déploiement (URLs, secrets) sont concernées.
 // type: 'auto' (défaut) = cast automatique booléen/nombre, 'string' = toujours string.
-const ENV_OVERRIDES = []
+const ENV_OVERRIDES = [
+  // Routing (mirroring dual-CSMS : primary = réponses relayées au CP)
+  { env: 'OCPP_UPSTREAM_PRIMARY', path: ['routing', 'default', 0], type: 'string' },
+  { env: 'OCPP_UPSTREAM_SECONDARY', path: ['routing', 'default', 1], type: 'string' },
+  // Proxy / Dashboard
+  { env: 'PROXY_PORT', path: ['proxy', 'port'], type: 'auto' },
+  { env: 'DASHBOARD_PORT', path: ['dashboard', 'port'], type: 'auto' },
+  { env: 'DASHBOARD_USERNAME', path: ['dashboard', 'username'], type: 'string' },
+  { env: 'DASHBOARD_PASSWORD', path: ['dashboard', 'password'], type: 'string' },
+  // Logs
+  { env: 'LOG_LEVEL', path: ['logLevel'], type: 'string' },
+  // Email — host/port/tls restent dans config.json (objet transport passé en entier à nodemailer)
+  { env: 'NOTIFY_EMAIL_ENABLED', path: ['notify', 'email', 'enabled'], type: 'auto' },
+  { env: 'SMTP_USER', path: ['notify', 'email', 'transport', 'auth', 'user'], type: 'string' },
+  { env: 'SMTP_PASS', path: ['notify', 'email', 'transport', 'auth', 'pass'], type: 'string' },
+  { env: 'SMTP_FROM', path: ['notify', 'email', 'from'], type: 'string' },
+  { env: 'SMTP_TO', path: ['notify', 'email', 'to'], type: 'string' },
+  // Pushover
+  { env: 'NOTIFY_PUSHOVER_ENABLED', path: ['notify', 'pushover', 'enabled'], type: 'auto' },
+  { env: 'NOTIFY_PUSHOVER_TOKEN', path: ['notify', 'pushover', 'token'], type: 'string' },
+  { env: 'NOTIFY_PUSHOVER_USER', path: ['notify', 'pushover', 'user'], type: 'string' },
+]
 
 function resolveConfigPath() {
   // Priorité 1 : config.dev.json si NODE_ENV=development

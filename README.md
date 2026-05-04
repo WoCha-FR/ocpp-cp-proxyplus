@@ -71,6 +71,20 @@ The Docker image exposes:
 - **9000** — OCPP WebSocket proxy
 - **3000** — HTTP dashboard
 
+### Docker Compose
+
+A `docker-compose.yml` is provided. Configuration is driven by a `.env` file — no need to edit `config.json` for common deployment settings.
+
+```bash
+cp .env.example .env
+# Edit .env: set OCPP_UPSTREAM_PRIMARY and DASHBOARD_PASSWORD at minimum
+docker compose up -d
+```
+
+The `config/` directory is mounted as a volume. On first start the entrypoint seeds it with `config.sample.json` if it is empty. Set `OCPP_UPSTREAM_PRIMARY` in `.env` to skip editing the file entirely.
+
+See [Environment variable overrides](#environment-variable-overrides) for the full list of supported variables.
+
 ## Configuration
 
 Copy `config/config.sample.json` to `config/config.json` and edit:
@@ -119,6 +133,30 @@ Copy `config/config.sample.json` to `config/config.json` and edit:
 | `dashboard.port`      | HTTP dashboard port (default: 3000)             |
 | `routing.default`     | Required — one or two upstream CSMS URLs        |
 | `routing.<stationId>` | Optional per-station upstream override          |
+
+### Environment variable overrides
+
+Deployment-specific values and secrets can be set via environment variables instead of editing `config.json`. Each variable patches a single config key after the file is loaded.
+
+| Variable                  | Config path                           | Default  | Description                          |
+| ------------------------- | ------------------------------------- | -------- | ------------------------------------ |
+| `OCPP_UPSTREAM_PRIMARY`   | `routing.default[0]`                  | —        | Primary CSMS URL (required)          |
+| `OCPP_UPSTREAM_SECONDARY` | `routing.default[1]`                  | —        | Mirror CSMS URL (optional)           |
+| `PROXY_PORT`              | `proxy.port`                          | `9000`   | WebSocket proxy port                 |
+| `DASHBOARD_PORT`          | `dashboard.port`                      | `3000`   | Dashboard port                       |
+| `DASHBOARD_USERNAME`      | `dashboard.username`                  | `admin`  | Dashboard login                      |
+| `DASHBOARD_PASSWORD`      | `dashboard.password`                  | —        | Dashboard password                   |
+| `LOG_LEVEL`               | `logLevel`                            | `info`   | Log verbosity                        |
+| `NOTIFY_EMAIL_ENABLED`    | `notify.email.enabled`                | `false`  | Enable email notifications           |
+| `SMTP_USER`               | `notify.email.transport.auth.user`    | —        | SMTP login                           |
+| `SMTP_PASS`               | `notify.email.transport.auth.pass`    | —        | SMTP password                        |
+| `SMTP_FROM`               | `notify.email.from`                   | —        | Sender address                       |
+| `SMTP_TO`                 | `notify.email.to`                     | —        | Recipient address                    |
+| `NOTIFY_PUSHOVER_ENABLED` | `notify.pushover.enabled`             | `false`  | Enable Pushover notifications        |
+| `NOTIFY_PUSHOVER_TOKEN`   | `notify.pushover.token`               | —        | Pushover app token                   |
+| `NOTIFY_PUSHOVER_USER`    | `notify.pushover.user`                | —        | Pushover user key                    |
+
+> **Note:** SMTP connection settings (`host`, `port`, `tls`, etc.) are part of the `email.transport` object passed directly to nodemailer and must be configured in `config.json`. Only credentials are overridable via env vars.
 
 Charge points connect to the proxy using the URL:
 

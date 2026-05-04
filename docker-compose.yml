@@ -1,0 +1,25 @@
+services:
+  ocpp-proxy:
+    image: ghcr.io/wocha-fr/ocpp-cp-proxyplus:latest
+    restart: unless-stopped
+    ports:
+      - '${PROXY_PORT:-9000}:9000'
+      - '${DASHBOARD_PORT:-3000}:3000'
+    volumes:
+      - ./config:/app/config
+    env_file:
+      - .env
+    environment:
+      - OCPP_UPSTREAM_PRIMARY=${OCPP_UPSTREAM_PRIMARY}
+      - OCPP_UPSTREAM_SECONDARY=${OCPP_UPSTREAM_SECONDARY:-}
+      - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - NOTIFY_EMAIL_ENABLED=${NOTIFY_EMAIL_ENABLED:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - SMTP_TO=${SMTP_TO:-}
+      - NOTIFY_PUSHOVER_ENABLED=${NOTIFY_PUSHOVER_ENABLED:-false}
+      - NOTIFY_PUSHOVER_TOKEN=${NOTIFY_PUSHOVER_TOKEN:-}
+      - NOTIFY_PUSHOVER_USER=${NOTIFY_PUSHOVER_USER:-}
