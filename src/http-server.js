@@ -184,6 +184,7 @@ function createHttpServer(config, db, proxy, notifier) {
       const payload = result[2] ?? {}
       if (action === 'get-config') {
         store.insertEvent(clientId, 'get_configuration', null, null, { request: ocppParams, response: payload })
+        return res.json({ status: 'Accepted' })
       }
       res.json({ status: payload.status ?? 'Accepted', result: payload })
     } catch (err) {

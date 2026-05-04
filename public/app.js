@@ -475,7 +475,8 @@ function setupCommandPanels(container) {
 
       try {
         const result = await api('POST', `/api/commands/${encodeURIComponent(clientId)}/${action}`, body)
-        resultDiv.innerHTML = `<span class="result-ok">${esc(result.status)} — ${esc(JSON.stringify(result.result))}</span>`
+        const detail = result.result != null ? ` — ${esc(JSON.stringify(result.result))}` : ''
+        resultDiv.innerHTML = `<span class="result-ok">${esc(result.status)}${detail}</span>`
       } catch (err) {
         const msg =
           err.status === 404 ? t('commands.not_connected') : err.status === 408 ? t('commands.timeout') : t('toast.error')
