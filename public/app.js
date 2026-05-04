@@ -350,6 +350,7 @@ async function deleteChargepoint(clientId) {
     delete activeFaultCount[clientId]
     renderStatusGrid()
     showToast(t('toast.deleted'))
+    Promise.allSettled([loadEvents(), loadFaults(), loadTransactions()])
   } catch {
     showToast(t('toast.error'), true)
   }
