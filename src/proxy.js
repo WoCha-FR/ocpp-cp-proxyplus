@@ -178,15 +178,6 @@ class OcppProxy {
       const msg = data.toString()
       const info = this.clientConnections.get(clientWs)
 
-      // Always handle responses to proxy-initiated commands (UI commands), regardless of upstream state
-      if (info) {
-        const message = router.parseMessage(msg)
-        if (message && (message.type === 3 || message.type === 4) && this.commandSender.hasPending(message.messageId)) {
-          this.commandSender.handleResponse(message.messageId, message.parsed)
-          return
-        }
-      }
-
       if (info && !upstreams[0].isConnected) {
         const maxBuffer = this.config.maxBufferSize ?? 100
         if (info.messageBuffer.length >= maxBuffer) {

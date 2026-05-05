@@ -442,6 +442,14 @@ const CMD_FIELDS = {
     `<label>${esc(t('commands.keys'))}: <input type="text" name="keys" placeholder="Key1,Key2" style="width:200px"></label>`,
 }
 
+function updateCommandPanelState(clientId) {
+  const priConnected = upstreamStatusMap[clientId]?.pri === true
+  document.querySelectorAll(`.cmd-form[data-client-id="${clientId}"]`).forEach((form) => {
+    const sendBtn = form.querySelector('.cmd-send')
+    if (sendBtn) sendBtn.disabled = !priConnected
+  })
+}
+
 function setupCommandPanels(container) {
   container.querySelectorAll('.cmd-form').forEach((form) => {
     const sel = form.querySelector('.cmd-select')
@@ -449,6 +457,8 @@ function setupCommandPanels(container) {
     const resultDiv = form.querySelector('.cmd-result')
     const sendBtn = form.querySelector('.cmd-send')
     const clientId = form.dataset.clientId
+
+    sendBtn.disabled = !(upstreamStatusMap[clientId]?.pri === true)
 
     const updateParams = () => {
       paramsDiv.innerHTML = CMD_FIELDS[sel.value]?.() ?? ''
@@ -1079,8 +1089,10 @@ function initSSE() {
   es.addEventListener('upstream-update', (e) => {
     const { clientId, name, connected } = JSON.parse(e.data)
     if (!upstreamStatusMap[clientId]) upstreamStatusMap[clientId] = { pri: false, sec: null }
-    if (name === 'PRI') upstreamStatusMap[clientId].pri = connected
-    else if (name === 'SEC') upstreamStatusMap[clientId].sec = connected
+    if (name === 'PRI') {
+      upstreamStatusMap[clientId].pri = connected
+      updateCommandPanelState(clientId)
+    } else if (name === 'SEC') upstreamStatusMap[clientId].sec = connected
     const card = document.querySelector(`.cp-card[data-client-id="${clientId}"]`)
     if (card) {
       const badge = card.querySelector(`.upstream-badge[data-upstream-name="${name}"]`)
@@ -1098,6 +1110,21 @@ function initSSE() {
           const onlineBadge = actionsEl.querySelector('.cp-online-badge')
           if (onlineBadge) onlineBadge.after(newBadge)
           else actionsEl.prepend(newBadge)
+          // If PRI was just created and SEC is not configured, also create the SEC badge
+          if (name === 'PRI' && !card.querySelector('.upstream-badge[data-upstream-name="SEC"]')) {
+            const secState = upstreamStatusMap[clientId]?.sec
+            const secBadge = document.createElement('span')
+            secBadge.dataset.upstreamName = 'SEC'
+            if (secState === null) {
+              secBadge.className = 'upstream-badge unconfigured'
+              secBadge.dataset.upstreamConfigured = 'false'
+            } else {
+              secBadge.className = `upstream-badge ${secState ? 'connected' : 'disconnected'}`
+              secBadge.dataset.upstreamConfigured = 'true'
+            }
+            secBadge.textContent = 'SEC'
+            newBadge.after(secBadge)
+          }
         }
       }
     }
