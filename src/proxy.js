@@ -166,7 +166,6 @@ class OcppProxy {
       })
 
       upstream.onDisconnected((serverName) => {
-        this.checkUpstreamsStatus(clientWs)
         if (upstream.wasEverConnected) {
           this.notifier?.disconnectedFromUpstream(clientId, serverName)
         }
@@ -176,6 +175,14 @@ class OcppProxy {
           secUpstream.pause()
           eventBus.emit('upstream-update', { clientId, name: secUpstream.name, connected: false })
         }
+        // If PRI was previously connected, disconnect the client so it reconnects and sends
+        // a fresh BootNotification (required by OCPP when establishing a new upstream session)
+        if (isPri && upstream.wasEverConnected) {
+          clog.info('PRI disconnected — closing client to force OCPP re-registration on reconnect')
+          clientWs.close(1001, 'Upstream disconnected')
+          return
+        }
+        this.checkUpstreamsStatus(clientWs)
       })
 
       upstream.onGaveUp(() => {

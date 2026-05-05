@@ -9,7 +9,7 @@ OCPP-CP-ProxyPlus se place entre les bornes de recharge et un ou plusieurs serve
 - Un tableau de bord de supervision en temps réel
 - Des notifications par e-mail et push (Pushover) sur les événements clés
 - Une connexion coordonnée aux serveurs primaire et secondaire, fonctionnant en paire — le secondaire ne se connecte que lorsque le primaire est actif
-- Une mise en tampon des messages en cas d'indisponibilité du serveur amont
+- Une mise en tampon des messages lors de la connexion initiale — si le primaire n'est pas encore joignable quand une borne se connecte, les messages sont mis en file jusqu'à ce que la connexion soit établie
 - Une base de données SQLite pour les événements, transactions, défauts et autorisations
 
 **Protocoles supportés :** OCPP 1.6 et OCPP 2.0.1
@@ -23,7 +23,7 @@ OCPP-CP-ProxyPlus se place entre les bornes de recharge et un ou plusieurs serve
   - CALL du primaire → transmis à la borne ; la réponse de la borne est renvoyée au primaire
   - CALL du secondaire → transmis à la borne ; la réponse de la borne est renvoyée au secondaire
   - Les commandes à distance depuis le tableau de bord sont bloquées tant que le primaire n'est pas connecté
-- **Tampon de messages** — met en file les messages entrants lorsque le primaire est indisponible et les transmet à la reconnexion (le primaire et le secondaire reçoivent tous deux les messages en attente dès leur connexion)
+- **Tampon de messages** — lors de la connexion initiale, met en file les messages entrants tant que le primaire n'est pas joignable et les transmet une fois connecté (le primaire et le secondaire reçoivent tous deux les messages en attente). Si le primaire se déconnecte après avoir été connecté, la borne est immédiatement déconnectée afin qu'elle se reconnecte et envoie un `BootNotification` frais, garantissant un ré-enregistrement OCPP conforme à la norme
 - **Tableau de bord** — interface web avec mises à jour en temps réel via Server-Sent Events (SSE)
   - Onglet Statut : état en direct des bornes et connecteurs
   - Onglet Événements : journal OCPP avec filtres

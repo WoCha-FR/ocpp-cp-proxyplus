@@ -9,7 +9,7 @@ OCPP-CP-ProxyPlus sits between charge points (EV charging stations) and one or m
 - Real-time monitoring dashboard
 - Email and push notifications (Pushover) on key events
 - Coordinated connection to primary and secondary upstream servers, working as a pair — secondary connects only when the primary is active
-- Message buffering when upstream is temporarily unavailable
+- Message buffering during initial connection — if the primary is not yet reachable when a charge point first connects, messages are queued until the upstream is ready
 - SQLite database for events, transactions, faults, and authorizations
 
 **Supported protocols:** OCPP 1.6 and OCPP 2.0.1
@@ -23,7 +23,7 @@ OCPP-CP-ProxyPlus sits between charge points (EV charging stations) and one or m
   - CALL from primary → forwarded to the charge point; the charge point's response is routed back to the primary
   - CALL from secondary → forwarded to the charge point; the charge point's response is routed back to the secondary
   - Remote commands from the dashboard are blocked while the primary is not connected
-- **Buffering** — queues incoming messages when the primary is unavailable and flushes them on reconnect (both primary and secondary receive the buffered messages once connected)
+- **Buffering** — during initial connection, queues incoming messages while the primary is not yet reachable and flushes them once it connects (both primary and secondary receive the buffered messages). If the primary disconnects after having been connected, the charge point is immediately disconnected so it can reconnect and send a fresh `BootNotification`, ensuring proper OCPP re-registration
 - **Dashboard** — web UI with real-time updates via Server-Sent Events (SSE)
   - Status tab: live charger and connector states
   - Events tab: OCPP event log with filters
