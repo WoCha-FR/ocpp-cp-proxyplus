@@ -423,8 +423,10 @@ td pre {
 }
 
 /* ─── Offline: connector badges grisés ──────────────────────────────────── */
-.cp-card.offline .connector-badge {
+.cp-card.offline .connector-badge,
+.cp-card.offline .upstream-badge {
   background: var(--unknown) !important;
+  color: var(--text-muted) !important;
   opacity: 0.6;
 }
 .commands-toggle:disabled {

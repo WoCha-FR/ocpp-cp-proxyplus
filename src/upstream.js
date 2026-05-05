@@ -25,8 +25,10 @@ class UpstreamConnection {
     this.wasEverConnected = false
     this.closed = false
     this.paused = false
+    this.gaveUp = false
+    this.noReconnect = false
     this.reconnectAttempts = 0
-    this.maxReconnectAttempts = 10
+    this.maxReconnectAttempts = Infinity
     this.reconnectTimer = null
 
     this.onMessageCallback = null
@@ -113,14 +115,15 @@ class UpstreamConnection {
     if (this.closed || this.paused) return
     if (this.reconnectTimer) return
 
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.log.error('Max reconnection attempts reached')
+    if (this.noReconnect || this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.gaveUp = true
+      this.log.error(this.noReconnect ? 'Connection failed — no reconnection configured' : 'Max reconnection attempts reached')
       this.onGaveUpCallback?.(this.name)
       return
     }
 
     this.reconnectAttempts++
-    const delay = Math.min(5000 * Math.pow(2, this.reconnectAttempts - 1), 60000)
+    const delay = Math.min(10000 * Math.pow(2, this.reconnectAttempts - 1), 600000)
     this.log.info(
       `Reconnecting in ${(delay / 1000).toFixed(1)}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
     )
@@ -133,21 +136,6 @@ class UpstreamConnection {
   }
 
   // ─── Pause / Resume ──────────────────────────────────────────────────────────
-
-  pause() {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer)
-      this.reconnectTimer = null
-    }
-    this.paused = true
-    this.reconnectAttempts = 0
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
-    }
-    this.isConnected = false
-    this.log.info('Connection paused (waiting for primary)')
-  }
 
   resume() {
     if (!this.paused) return

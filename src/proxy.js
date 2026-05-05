@@ -134,6 +134,7 @@ class OcppProxy {
     const upstreams = resolveUpstreams(this.config, clientId).map(
       ({ name, url }) => new UpstreamConnection(name, url, clientId, protocol, clientIp, forwardedHeaders)
     )
+    upstreams[0].noReconnect = true
 
     if (!upstreams.length) {
       clog.error('No upstream configured — rejecting connection')
@@ -170,11 +171,6 @@ class OcppProxy {
           this.notifier?.disconnectedFromUpstream(clientId, serverName)
         }
         eventBus.emit('upstream-update', { clientId, name: serverName, connected: false })
-        // When PRI disconnects, disconnect SEC too — no notification (expected behavior)
-        if (isPri && secUpstream) {
-          secUpstream.pause()
-          eventBus.emit('upstream-update', { clientId, name: secUpstream.name, connected: false })
-        }
         // If PRI was previously connected, disconnect the client so it reconnects and sends
         // a fresh BootNotification (required by OCPP when establishing a new upstream session)
         if (isPri && upstream.wasEverConnected) {
@@ -362,7 +358,7 @@ class OcppProxy {
     const info = this.clientConnections.get(clientWs)
     if (!info || info.messageBuffer.length === 0) return
 
-    const allResolved = info.upstreams.every((u) => u.isConnected || u.closed || u.reconnectAttempts >= u.maxReconnectAttempts)
+    const allResolved = info.upstreams.every((u) => u.isConnected || u.closed || u.gaveUp)
 
     if (allResolved) {
       createLogger('Proxy', info.clientId).info(
@@ -381,7 +377,7 @@ class OcppProxy {
     const clog = createLogger('Proxy', info.clientId)
 
     const someStillTrying = info.upstreams.some(
-      (u) => !u.isConnected && !u.paused && !u.closed && u.reconnectAttempts < u.maxReconnectAttempts
+      (u) => !u.isConnected && !u.paused && !u.closed && !u.gaveUp && u.reconnectAttempts < u.maxReconnectAttempts
     )
     if (someStillTrying) {
       clog.info('Some upstreams still connecting — keeping client alive')
