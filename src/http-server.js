@@ -133,6 +133,11 @@ function createHttpServer(config, db, proxy, notifier) {
     const conn = proxy?.getClientConnection(clientId)
     if (!conn) return res.status(404).json({ error: 'not_connected' })
 
+    const upstreamStatus = proxy.getUpstreamStatus()
+    if (upstreamStatus[clientId]?.pri !== true) {
+      return res.status(503).json({ error: 'primary_not_connected' })
+    }
+
     const { ws, protocol } = conn
     const body = req.body ?? {}
     let ocppAction, ocppParams

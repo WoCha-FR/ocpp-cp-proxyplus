@@ -46,6 +46,10 @@
     "upstream_disconnected": {
       "title": "[{{clientId}}] Disconnected from upstream",
       "body": "Charge point {{clientId}} disconnected from upstream server {{serverName}}."
+    },
+    "upstream_rejected": {
+      "title": "[{{clientId}}] Connection rejected by upstream",
+      "body": "Connection from {{clientId}} to server {{serverName}} was rejected (HTTP {{statusCode}})."
     }
   },
 
@@ -78,6 +82,7 @@
     "upstream_pri": "Primary upstream",
     "upstream_sec": "Secondary upstream",
     "upstream_unconfigured": "Not configured",
+    "upstream_rejected_badge": "Rejected",
     "route_default": "Default route",
     "route_custom": "Custom route",
     "delete_confirm": "Delete charge point \"{{id}}\" and all its data?"
@@ -119,6 +124,7 @@
     "rejected": "Command rejected",
     "timeout": "Timeout (charge point unreachable?)",
     "not_connected": "Charge point not connected",
+    "primary_not_connected": "Primary upstream not connected",
     "reset": "Reset",
     "reset_type": "Type",
     "unlock": "Unlock connector",

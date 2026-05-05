@@ -46,6 +46,10 @@
     "upstream_disconnected": {
       "title": "[{{clientId}}] Déconnecté de l'upstream",
       "body": "La borne {{clientId}} s'est déconnectée du serveur upstream {{serverName}}."
+    },
+    "upstream_rejected": {
+      "title": "[{{clientId}}] Connexion rejetée par l'upstream",
+      "body": "La connexion de {{clientId}} au serveur {{serverName}} a été rejetée (HTTP {{statusCode}})."
     }
   },
 
@@ -78,6 +82,7 @@
     "upstream_pri": "Upstream primaire",
     "upstream_sec": "Upstream secondaire",
     "upstream_unconfigured": "Non configuré",
+    "upstream_rejected_badge": "Rejeté",
     "route_default": "Route défaut",
     "route_custom": "Route spécifique",
     "delete_confirm": "Supprimer la borne « {{id}} » et toutes ses données ?"
@@ -119,6 +124,7 @@
     "rejected": "Commande refusée",
     "timeout": "Délai dépassé (borne injoignable ?)",
     "not_connected": "Borne non connectée",
+    "primary_not_connected": "Upstream primaire non connecté",
     "reset": "Réinitialiser",
     "reset_type": "Type",
     "unlock": "Déverrouiller connecteur",

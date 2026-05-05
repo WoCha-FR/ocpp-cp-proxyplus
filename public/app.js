@@ -489,7 +489,10 @@ function setupCommandPanels(container) {
         resultDiv.innerHTML = `<span class="result-ok">${esc(result.status)}${detail}</span>`
       } catch (err) {
         const msg =
-          err.status === 404 ? t('commands.not_connected') : err.status === 408 ? t('commands.timeout') : t('toast.error')
+          err.status === 404 ? t('commands.not_connected')
+          : err.status === 503 ? t('commands.primary_not_connected')
+          : err.status === 408 ? t('commands.timeout')
+          : t('toast.error')
         resultDiv.innerHTML = `<span class="result-err">${esc(msg)}</span>`
       } finally {
         sendBtn.disabled = false
@@ -1087,7 +1090,8 @@ function initSSE() {
   })
 
   es.addEventListener('upstream-update', (e) => {
-    const { clientId, name, connected } = JSON.parse(e.data)
+    const { clientId, name, connected, rejected } = JSON.parse(e.data)
+    if (rejected) showToast(`${clientId} — ${t('upstream_rejected_badge')} (${name})`, true)
     if (!upstreamStatusMap[clientId]) upstreamStatusMap[clientId] = { pri: false, sec: null }
     if (name === 'PRI') {
       upstreamStatusMap[clientId].pri = connected
@@ -1097,7 +1101,7 @@ function initSSE() {
     if (card) {
       const badge = card.querySelector(`.upstream-badge[data-upstream-name="${name}"]`)
       if (badge) {
-        badge.className = `upstream-badge ${connected ? 'connected' : 'disconnected'}`
+        badge.className = `upstream-badge ${rejected ? 'rejected' : connected ? 'connected' : 'disconnected'}`
       } else {
         // Badge doesn't exist yet (card rendered before upstream status was known)
         const actionsEl = card.querySelector('.cp-actions')

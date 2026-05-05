@@ -8,7 +8,7 @@ OCPP-CP-ProxyPlus se place entre les bornes de recharge et un ou plusieurs serve
 
 - Un tableau de bord de supervision en temps réel
 - Des notifications par e-mail et push (Pushover) sur les événements clés
-- Une connexion simultanée aux serveurs primaire et secondaire, fonctionnant en paire
+- Une connexion coordonnée aux serveurs primaire et secondaire, fonctionnant en paire — le secondaire ne se connecte que lorsque le primaire est actif
 - Une mise en tampon des messages en cas d'indisponibilité du serveur amont
 - Une base de données SQLite pour les événements, transactions, défauts et autorisations
 
@@ -17,11 +17,13 @@ OCPP-CP-ProxyPlus se place entre les bornes de recharge et un ou plusieurs serve
 ## Fonctionnalités
 
 - **Proxy bidirectionnel** — achemine les messages entre bornes et CSMS avec remappage automatique des identifiants
-- **Double serveur amont** — les serveurs primaire et secondaire sont connectés simultanément et fonctionnent en paire :
+- **Double serveur amont** — les serveurs primaire et secondaire fonctionnent en paire coordonnée :
+  - Le secondaire se connecte uniquement une fois le primaire connecté ; si le primaire se déconnecte, le secondaire est immédiatement déconnecté et attend le retour du primaire
   - CALL de la borne → diffusé aux deux ; seule la réponse du primaire est retransmise à la borne (celle du secondaire est ignorée pour éviter les doublons)
   - CALL du primaire → transmis à la borne ; la réponse de la borne est renvoyée au primaire
   - CALL du secondaire → transmis à la borne ; la réponse de la borne est renvoyée au secondaire
-- **Tampon de messages** — met en file les messages entrants lorsque le primaire est indisponible et les transmet à la reconnexion
+  - Les commandes à distance depuis le tableau de bord sont bloquées tant que le primaire n'est pas connecté
+- **Tampon de messages** — met en file les messages entrants lorsque le primaire est indisponible et les transmet à la reconnexion (le primaire et le secondaire reçoivent tous deux les messages en attente dès leur connexion)
 - **Tableau de bord** — interface web avec mises à jour en temps réel via Server-Sent Events (SSE)
   - Onglet Statut : état en direct des bornes et connecteurs
   - Onglet Événements : journal OCPP avec filtres
@@ -178,8 +180,8 @@ L'objet `email.transport` est transmis directement à [nodemailer](https://nodem
 | ---------------------- | ----------------------------------------------------- |
 | `onConnect`            | Une borne s'est connectée au proxy                    |
 | `onDisconnect`         | Une borne s'est déconnectée                           |
-| `onUpstreamConnect`    | Connexion au CSMS amont établie                       |
-| `onUpstreamDisconnect` | Connexion au CSMS amont perdue                        |
+| `onUpstreamConnect`    | Connexion au CSMS amont établie                                  |
+| `onUpstreamDisconnect` | Connexion au CSMS amont perdue ou rejetée (HTTP 4xx)             |
 | `onStatusFault`        | Un défaut a été signalé par une borne                 |
 | `onTransaction`        | Une transaction de charge a démarré ou s'est terminée |
 

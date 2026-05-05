@@ -8,7 +8,7 @@ OCPP-CP-ProxyPlus sits between charge points (EV charging stations) and one or m
 
 - Real-time monitoring dashboard
 - Email and push notifications (Pushover) on key events
-- Simultaneous connection to primary and secondary upstream servers, working as a pair
+- Coordinated connection to primary and secondary upstream servers, working as a pair — secondary connects only when the primary is active
 - Message buffering when upstream is temporarily unavailable
 - SQLite database for events, transactions, faults, and authorizations
 
@@ -17,11 +17,13 @@ OCPP-CP-ProxyPlus sits between charge points (EV charging stations) and one or m
 ## Features
 
 - **Bidirectional proxy** — routes messages between charge points and CSMS with automatic ID remapping
-- **Dual upstream** — primary and secondary servers are connected simultaneously and work as a pair:
+- **Dual upstream** — primary and secondary servers work as a coordinated pair:
+  - The secondary connects only once the primary is connected; if the primary disconnects, the secondary is immediately disconnected and waits for the primary to come back
   - CALL from charge point → broadcast to both; only the primary's response is forwarded back (secondary's is dropped to avoid duplicates)
   - CALL from primary → forwarded to the charge point; the charge point's response is routed back to the primary
   - CALL from secondary → forwarded to the charge point; the charge point's response is routed back to the secondary
-- **Buffering** — queues incoming messages when the primary is unavailable and flushes them on reconnect
+  - Remote commands from the dashboard are blocked while the primary is not connected
+- **Buffering** — queues incoming messages when the primary is unavailable and flushes them on reconnect (both primary and secondary receive the buffered messages once connected)
 - **Dashboard** — web UI with real-time updates via Server-Sent Events (SSE)
   - Status tab: live charger and connector states
   - Events tab: OCPP event log with filters
@@ -179,7 +181,7 @@ The `email.transport` object is passed directly to [nodemailer](https://nodemail
 | `onConnect`            | A charge point connected to the proxy         |
 | `onDisconnect`         | A charge point disconnected                   |
 | `onUpstreamConnect`    | Upstream CSMS connection established          |
-| `onUpstreamDisconnect` | Upstream CSMS connection lost                 |
+| `onUpstreamDisconnect` | Upstream CSMS connection lost or rejected (HTTP 4xx) |
 | `onStatusFault`        | A fault status was reported by a charge point |
 | `onTransaction`        | A charging transaction started or stopped     |
 

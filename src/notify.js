@@ -128,6 +128,16 @@ class Notify {
     )
   }
 
+  upstreamRejected(clientId, serverName, statusCode) {
+    this.store?.insertEvent(clientId, 'upstream_rejected', null, null, { serverName, statusCode })
+    eventBus.emit('ocpp-event', { type: 'upstream_rejected', clientId })
+    if (!this.config.onUpstreamDisconnect) return
+    this._send(
+      trad('notification.upstream_rejected.title', { clientId, serverName }),
+      trad('notification.upstream_rejected.body', { clientId, serverName, statusCode })
+    )
+  }
+
   // ─── CALL from client (type 2) ────────────────────────────────────────────
 
   callFromClient(clientId, data) {

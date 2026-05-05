@@ -144,14 +144,22 @@ class OcppProxy {
     const connectionInfo = { clientId, clientWs, upstreams, router, protocol, messageBuffer: [] }
     this.clientConnections.set(clientWs, connectionInfo)
 
+    // SEC starts paused — only connects once PRI is connected
+    upstreams.slice(1).forEach((u) => { u.paused = true })
+
     // Wire upstream events
     upstreams.forEach((upstream) => {
+      const isPri = upstream === upstreams[0]
+      const secUpstream = upstreams[1] ?? null
+
       upstream.onMessage((data, serverName) => {
         this.handleUpstreamMessage(clientWs, data, serverName, router)
       })
 
       upstream.onConnected((serverName) => {
         this.sendBufferToUpstream(clientWs, upstream)
+        // Resume SEC before flush so it's counted as "pending" and buffer is kept for it
+        if (isPri && secUpstream) secUpstream.resume()
         this.flushMessageBufferIfAllConnected(clientWs)
         this.notifier?.connectedToUpstream(clientId, serverName)
         eventBus.emit('upstream-update', { clientId, name: serverName, connected: true })
@@ -163,6 +171,11 @@ class OcppProxy {
           this.notifier?.disconnectedFromUpstream(clientId, serverName)
         }
         eventBus.emit('upstream-update', { clientId, name: serverName, connected: false })
+        // When PRI disconnects, disconnect SEC too — no notification (expected behavior)
+        if (isPri && secUpstream) {
+          secUpstream.pause()
+          eventBus.emit('upstream-update', { clientId, name: secUpstream.name, connected: false })
+        }
       })
 
       upstream.onGaveUp(() => {
@@ -170,8 +183,14 @@ class OcppProxy {
         this.checkUpstreamsStatus(clientWs)
       })
 
-      upstream.connect()
+      upstream.onRejected((serverName, statusCode) => {
+        this.notifier?.upstreamRejected(clientId, serverName, statusCode)
+        eventBus.emit('upstream-update', { clientId, name: serverName, connected: false, rejected: true })
+      })
     })
+
+    // Start only PRI — SEC starts via PRI's onConnected
+    upstreams[0].connect()
 
     // Wire client events
     clientWs.on('message', (data) => {
@@ -336,7 +355,7 @@ class OcppProxy {
     const info = this.clientConnections.get(clientWs)
     if (!info || info.messageBuffer.length === 0) return
 
-    const allResolved = info.upstreams.every((u) => u.isConnected || u.reconnectAttempts >= u.maxReconnectAttempts)
+    const allResolved = info.upstreams.every((u) => u.isConnected || u.closed || u.reconnectAttempts >= u.maxReconnectAttempts)
 
     if (allResolved) {
       createLogger('Proxy', info.clientId).info(
@@ -354,10 +373,10 @@ class OcppProxy {
 
     const clog = createLogger('Proxy', info.clientId)
 
-    const someStillConnecting = info.upstreams.some(
-      (u) => !u.isConnected && !u.wasEverConnected && u.reconnectAttempts < u.maxReconnectAttempts
+    const someStillTrying = info.upstreams.some(
+      (u) => !u.isConnected && !u.paused && !u.closed && u.reconnectAttempts < u.maxReconnectAttempts
     )
-    if (someStillConnecting) {
+    if (someStillTrying) {
       clog.info('Some upstreams still connecting — keeping client alive')
       return
     }

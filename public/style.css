@@ -470,6 +470,10 @@ td pre {
   background: #e9ecef;
   color: #6c757d;
 }
+.upstream-badge.rejected {
+  background: #ff8c00;
+  color: #fff;
+}
 
 /* ─── Fault Badge ─────────────────────────────────────────────────────────── */
 .fault-badge {

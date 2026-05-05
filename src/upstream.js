@@ -24,6 +24,7 @@ class UpstreamConnection {
     this.isConnected = false
     this.wasEverConnected = false
     this.closed = false
+    this.paused = false
     this.reconnectAttempts = 0
     this.maxReconnectAttempts = 10
     this.reconnectTimer = null
@@ -32,6 +33,7 @@ class UpstreamConnection {
     this.onConnectedCallback = null
     this.onDisconnectedCallback = null
     this.onGaveUpCallback = null
+    this.onRejectedCallback = null
   }
 
   // ─── URL ────────────────────────────────────────────────────────────────────
@@ -44,6 +46,7 @@ class UpstreamConnection {
   // ─── Connection ─────────────────────────────────────────────────────────────
 
   async connect() {
+    if (this.paused) return
     if (this.ws && this.isConnected) {
       this.log.debug('Already connected')
       return
@@ -74,6 +77,15 @@ class UpstreamConnection {
         this.onMessageCallback?.(data.toString(), this.name)
       })
 
+      this.ws.on('unexpected-response', (request, response) => {
+        const statusCode = response.statusCode
+        this.log.error(`Connection rejected by server: HTTP ${statusCode}`)
+        if (statusCode >= 400 && statusCode < 500) {
+          this.closed = true
+          this.onRejectedCallback?.(this.name, statusCode)
+        }
+      })
+
       this.ws.on('error', (error) => {
         this.log.error(`WebSocket error: ${error.message}`)
       })
@@ -81,9 +93,11 @@ class UpstreamConnection {
       this.ws.on('close', () => {
         this.isConnected = false
         this.log.warn('Disconnected')
-        this.onDisconnectedCallback?.(this.name)
+        if (!this.paused) {
+          this.onDisconnectedCallback?.(this.name)
+        }
 
-        if (!this.closed) {
+        if (!this.closed && !this.paused) {
           this.scheduleReconnect()
         }
       })
@@ -96,7 +110,7 @@ class UpstreamConnection {
   // ─── Reconnection ────────────────────────────────────────────────────────────
 
   scheduleReconnect() {
-    if (this.closed) return
+    if (this.closed || this.paused) return
     if (this.reconnectTimer) return
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
@@ -116,6 +130,29 @@ class UpstreamConnection {
       if (this.closed) return
       this.connect()
     }, delay)
+  }
+
+  // ─── Pause / Resume ──────────────────────────────────────────────────────────
+
+  pause() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    this.paused = true
+    this.reconnectAttempts = 0
+    if (this.ws) {
+      this.ws.close()
+      this.ws = null
+    }
+    this.isConnected = false
+    this.log.info('Connection paused (waiting for primary)')
+  }
+
+  resume() {
+    if (!this.paused) return
+    this.paused = false
+    this.connect()
   }
 
   // ─── Send ────────────────────────────────────────────────────────────────────
@@ -170,6 +207,9 @@ class UpstreamConnection {
   }
   onGaveUp(callback) {
     this.onGaveUpCallback = callback
+  }
+  onRejected(callback) {
+    this.onRejectedCallback = callback
   }
 }
 
